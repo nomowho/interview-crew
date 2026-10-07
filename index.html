@@ -3,469 +3,429 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f7f6f3" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121619" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="採訪排程">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <title>廣編採訪排程</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23627b6d%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z%27/%3E%3Cpath d=%27M19 10v2a7 7 0 0 1-14 0v-2%27/%3E%3Cpath d=%27M12 19v3%27/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23007aff%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z%27/%3E%3Cpath d=%27M19 10v2a7 7 0 0 1-14 0v-2%27/%3E%3Cpath d=%27M12 19v3%27/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
 /* ─────────────────────────────────────────────
-   廣編採訪排程 — 沿用 Nomo Trip Planner 視覺系統
-   米白底＋深墨藍字；鼠尾草綠（完成）、霧藍（互動）、陶土橘（提醒）、磚紅（逾期）
-   英文 Manrope、中文思源黑體；標題局部用思源宋體；圖示一律 Lucide 線條
+   廣編採訪排程 — iOS 原生風格
+   iPhone／Mac 用系統字（SF＋蘋方），其他平台退回 Inter＋思源黑體
+   顏色一律用 iOS 系統色，淺色／深色模式各一組
    ───────────────────────────────────────────── */
 :root {
   color-scheme: light dark;
-  --bg: #f7f6f3; --surface: #ffffff; --paper-2: #f6f4f0;
-  --glass: rgba(247,246,243,.8); --glass-strong: rgba(255,255,255,.94);
-  --ink: #1c252c; --ink-2: #5b6770; --ink-3: #8a949b; --hair: #e7e3dd;
-  --fill: rgba(28,37,44,.06); --fill-2: rgba(28,37,44,.1);
-  --sage: #627b6d; --fog: #6f9cb5; --clay: #c97757; --blue: #3f7593; --red: #b24a36;
-  --blue-tint: rgba(111,156,181,.16);
-  --paper-shadow: 0 1px 2px rgba(66,52,38,.05), 0 8px 24px rgba(66,52,38,.07);
-  --sheet-shadow: 0 24px 64px rgba(0,0,0,.22), 0 0 0 .5px var(--hair);
-  --blur: saturate(160%) blur(20px);
-  --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --pill: 980px;
-  --sans: "Manrope", "Noto Sans TC", -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei", sans-serif;
-  --serif: "Noto Serif TC", "Songti TC", serif;
+  --bg: #f2f2f7; --cell: #ffffff; --cell-hl: #e5e5ea;
+  --sheet-bg: #f2f2f7; --sheet-cell: #ffffff;
+  --label: #000000; --label-2: rgba(60,60,67,.6); --label-3: rgba(60,60,67,.3);
+  --sep: rgba(60,60,67,.29);
+  --fill: rgba(118,118,128,.12); --fill-2: rgba(120,120,128,.2);
+  --gray: #8e8e93; --gray-3: #c7c7cc; --switch-off: #e9e9ea; --seg-on: #ffffff;
+  --blue: #007aff; --red: #ff3b30; --orange: #ff9500; --green: #34c759;
+  --indigo: #5856d6; --teal: #30b0c7; --purple: #af52de; --pink: #ff2d55;
+  --bar: rgba(249,249,249,.92); --as-bg: rgba(249,249,249,.94); --as-cancel: #ffffff;
+  --blur: saturate(180%) blur(20px);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  --ease: cubic-bezier(.32,.72,0,1);
+  --tabbar-h: 50px;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #121619; --surface: #1b2126; --paper-2: #20272c;
-    --glass: rgba(18,22,25,.8); --glass-strong: rgba(30,36,41,.94);
-    --ink: #eceae5; --ink-2: #a5adb3; --ink-3: #7d878e; --hair: #2c343a;
-    --fill: rgba(236,234,229,.08); --fill-2: rgba(236,234,229,.14);
-    --sage: #8fa898; --fog: #8db6cc; --clay: #d99479; --blue: #8db6cc; --red: #e07a64;
-    --blue-tint: rgba(141,182,204,.16);
-    --paper-shadow: 0 0 0 1px var(--hair);
+    --bg: #000000; --cell: #1c1c1e; --cell-hl: #2c2c2e;
+    --sheet-bg: #1c1c1e; --sheet-cell: #2c2c2e;
+    --label: #ffffff; --label-2: rgba(235,235,245,.6); --label-3: rgba(235,235,245,.3);
+    --sep: rgba(84,84,88,.65);
+    --fill: rgba(118,118,128,.24); --fill-2: rgba(118,118,128,.36);
+    --gray-3: #48484a; --switch-off: #39393d; --seg-on: #636366;
+    --blue: #0a84ff; --red: #ff453a; --orange: #ff9f0a; --green: #30d158;
+    --indigo: #5e5ce6; --teal: #40c8e0; --purple: #bf5af2; --pink: #ff375f;
+    --bar: rgba(22,22,24,.86); --as-bg: rgba(44,44,46,.92); --as-cancel: #2c2c2e;
   }
 }
-* { box-sizing: border-box; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
 html, body {
-  margin: 0; padding: 0; background: var(--bg); color: var(--ink);
-  font-family: var(--sans); font-size: 15px; line-height: 1.5; letter-spacing: -.01em;
+  margin: 0; padding: 0; background: var(--bg); color: var(--label);
+  font-family: var(--font); font-size: 17px; line-height: 1.3; letter-spacing: -.01em;
   font-variant-numeric: tabular-nums;
-  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; -webkit-text-size-adjust: 100%;
 }
 body { min-height: 100vh; }
 /* 開視窗時把頁面釘住（iOS 只設 overflow:hidden 擋不住背景捲動） */
-body.modal-open { position: fixed; left: 0; right: 0; overflow: hidden; }
+body.locked { position: fixed; left: 0; right: 0; overflow: hidden; }
 button, input, select, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
 button { cursor: pointer; }
 a { color: var(--blue); text-decoration: none; }
-a:hover { text-decoration: underline; }
-:focus-visible { outline: 3px solid color-mix(in srgb, var(--blue) 45%, transparent); outline-offset: 2px; border-radius: 6px; }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
-.ico { width: 18px; height: 18px; flex: none; }
+:focus-visible { outline: 3px solid color-mix(in srgb, var(--blue) 50%, transparent); outline-offset: 2px; border-radius: 8px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+.ico { width: 22px; height: 22px; flex: none; }
 
-/* ── PIN ── */
-#pin-screen { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 24px; background: var(--bg); }
-.pin-box { width: 100%; max-width: 300px; text-align: center; }
-.pin-box .kicker { justify-content: center; }
-.pin-box h1 { margin: 10px 0 28px; font-family: var(--serif); font-size: 30px; font-weight: 700; letter-spacing: .08em; }
-#pin-input { width: 100%; padding: 14px; border: none; border-radius: var(--r-md); background: var(--fill); text-align: center; font-size: 22px; letter-spacing: 10px; outline: none; transition: background .15s, box-shadow .15s; }
-#pin-input:focus { background: var(--surface); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 35%, transparent); }
-.pin-err { min-height: 20px; margin-top: 10px; color: var(--red); font-size: 13px; }
+/* ── 鎖定畫面（密碼） ── */
+#pin-screen { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; background: var(--bg); user-select: none; -webkit-user-select: none; }
+.lock-icon { display: grid; place-items: center; width: 58px; height: 58px; margin-bottom: 18px; border-radius: 14px; background: var(--blue); color: #fff; }
+.lock-icon .ico { width: 30px; height: 30px; stroke-width: 2; }
+.lock-title { font-family: var(--display); font-size: 20px; font-weight: 500; }
+.lock-sub { margin-top: 4px; color: var(--label-2); font-size: 15px; }
+.dots { display: flex; gap: 22px; margin: 26px 0 8px; }
+.dots i { width: 13px; height: 13px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--label); transition: background .1s; }
+.dots i.on { background: var(--label); }
+.dots.shake { animation: shake .42s; }
+@keyframes shake { 0%,100% { transform: none; } 20%,60% { transform: translateX(-12px); } 40%,80% { transform: translateX(12px); } }
+.lock-err { height: 20px; margin-bottom: 22px; color: var(--red); font-size: 15px; }
+.keypad { display: grid; grid-template-columns: repeat(3, 78px); gap: 16px 26px; }
+.key { display: grid; place-items: center; width: 78px; height: 78px; border: none; border-radius: 50%; background: var(--fill); color: var(--label); font-family: var(--display); font-size: 36px; font-weight: 300; transition: background .2s; }
+.key:active { background: var(--gray-3); transition: none; }
+.key.blank { visibility: hidden; }
+.key.del { background: none; }
+.key.del .ico { width: 26px; height: 26px; }
 
-/* ── 頂部選單：毛玻璃 ── */
-.topnav { position: sticky; top: 0; z-index: 50; background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border-bottom: .5px solid var(--hair); padding-top: env(safe-area-inset-top); }
-.topnav-in { display: flex; align-items: center; gap: 16px; max-width: 1280px; min-height: 56px; margin: 0 auto; padding: 8px 24px; }
-.brand { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 17px; font-weight: 600; letter-spacing: -.02em; white-space: nowrap; }
-.sync-dot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--ink-3); transition: background .3s; }
-.sync-dot.ok { background: #34c759; } .sync-dot.offline { background: var(--clay); } .sync-dot.error { background: var(--red); }
-.nav-right { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+/* ── 導覽列：頂端透明，捲動後出現毛玻璃與小標題 ── */
+.navbar { position: sticky; top: 0; z-index: 50; padding-top: env(safe-area-inset-top); border-bottom: .5px solid transparent; transition: background .2s, border-color .2s; }
+.navbar.scrolled { background: var(--bar); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border-bottom-color: var(--sep); }
+.nav-in { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; max-width: 960px; height: 44px; margin: 0 auto; padding: 0 8px; }
+.nav-title { grid-column: 2; font-size: 17px; font-weight: 600; opacity: 0; transition: opacity .2s; }
+.navbar.scrolled .nav-title { opacity: 1; }
+.nav-right { display: flex; justify-content: flex-end; gap: 2px; grid-column: 3; }
+.nav-btn { display: grid; place-items: center; width: 44px; height: 44px; border: none; background: none; color: var(--blue); }
+.nav-btn .ico { width: 24px; height: 24px; stroke-width: 1.8; }
+.nav-btn:active { opacity: .35; }
 
-/* 分段切換 */
-.tabs { display: inline-flex; gap: 2px; padding: 2px; margin: 0 auto; background: var(--fill); border-radius: 9px; }
-.tab { display: inline-flex; align-items: center; gap: 5px; padding: 5px 16px; border: none; border-radius: 7px; background: none; color: var(--ink); font-size: 13px; font-weight: 500; transition: background .2s, box-shadow .2s; }
-.tab.active { background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 0 0 .5px rgba(0,0,0,.04); font-weight: 600; }
-.tab .count { color: var(--ink-3); font-size: 12px; font-weight: 500; }
+main { max-width: 960px; margin: 0 auto; padding: 0 16px calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 40px); }
+.large-title { margin: 2px 4px 0; font-family: var(--display); font-size: 34px; font-weight: 700; line-height: 41px; letter-spacing: .01em; }
+.lt-sub { margin: 2px 4px 16px; color: var(--label-2); font-size: 15px; }
+.lt-sub .st-error { color: var(--red); } .lt-sub .st-offline { color: var(--orange); }
 
-/* 按鈕：只留一顆深色主按鈕，其他是文字按鈕 */
-.primary-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border: none; border-radius: var(--pill); background: var(--ink); color: var(--bg); font-size: 13px; font-weight: 600; white-space: nowrap; transition: opacity .15s, transform .1s; }
-.primary-btn:hover { opacity: .88; }
-.primary-btn .ico { width: 16px; height: 16px; }
-.text-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px; border: none; border-radius: 6px; background: none; color: var(--ink-2); font-size: 13px; font-weight: 500; white-space: nowrap; }
-.text-btn:hover { color: var(--ink); }
-.text-btn:hover .lbl { text-decoration: underline; text-underline-offset: 3px; }
-.text-btn .ico { width: 17px; height: 17px; }
-.text-btn.danger { color: var(--red); }
-.add-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 2px; border: none; background: none; color: var(--blue); font-size: 13px; font-weight: 600; }
-.add-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
-.add-btn .ico { width: 16px; height: 16px; }
-.icon-btn { display: grid; place-items: center; width: 32px; height: 32px; border: none; border-radius: 50%; background: none; color: var(--ink-2); transition: background .15s, color .15s; }
-.icon-btn:hover { background: var(--fill); color: var(--ink); }
-.primary-btn:active, .text-btn:active, .icon-btn:active, .add-btn:active { transform: scale(.97); }
+/* ── 分組清單（inset grouped） ── */
+.list { margin-bottom: 12px; overflow: hidden; background: var(--cell); border-radius: 10px; }
+.cell { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 11px 16px; border: none; background: none; color: var(--label); font-size: 17px; text-align: left; }
+.cell + .cell::before { content: ""; position: absolute; top: 0; right: 0; left: var(--sep-left, 16px); height: .5px; background: var(--sep); }
+button.cell { cursor: pointer; transition: background .25s; }
+button.cell:active { background: var(--cell-hl); transition: none; }
+.cell-main { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.cell-title { font-size: 17px; line-height: 22px; overflow-wrap: anywhere; }
+.cell-sub { color: var(--label-2); font-size: 15px; line-height: 20px; overflow-wrap: anywhere; }
+.cell-value { flex: none; color: var(--label-2); font-size: 17px; }
+.chev { width: 14px; height: 14px; margin-left: 2px; color: var(--gray-3); stroke-width: 3; }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 18px 16px 7px; color: var(--label-2); font-size: 13px; }
+.sec-head:first-child { padding-top: 4px; }
+.big-head { display: flex; align-items: baseline; gap: 8px; margin: 26px 4px 8px; }
+.big-head h2 { margin: 0; font-family: var(--display); font-size: 22px; font-weight: 700; line-height: 28px; }
+.big-head .n { color: var(--label-2); font-size: 17px; }
+.big-head.red h2 { color: var(--red); }
+.head-link { margin-left: auto; padding: 0; border: none; background: none; color: var(--blue); font-size: 17px; }
+.head-link:active { opacity: .35; }
 
-main { max-width: 1280px; margin: 0 auto; padding: 24px 24px 80px; }
-.banner { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 18px; padding: 12px 16px; border-radius: var(--r-md); font-size: 13px; line-height: 1.6; }
-.banner .ico { width: 16px; height: 16px; margin-top: 2px; }
-.banner.warn { background: color-mix(in srgb, var(--red) 9%, transparent); color: var(--red); }
-.banner.demo { background: color-mix(in srgb, var(--clay) 10%, transparent); color: color-mix(in srgb, var(--clay) 80%, var(--ink)); }
-.banner code { font-size: 12px; }
+/* 設定 App 式的彩色圖示方塊 */
+.tile { display: grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: 7px; color: #fff; }
+.tile .ico { width: 18px; height: 18px; stroke-width: 2.1; }
+.t-red { background: var(--red); } .t-orange { background: var(--orange); } .t-blue { background: var(--blue); }
+.t-indigo { background: var(--indigo); } .t-green { background: var(--green); } .t-gray { background: var(--gray); }
 
-/* 微標籤 */
-.kicker { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3); }
-.micro { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 5px; background: var(--paper-2); color: var(--ink-2); font-size: 11.5px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; }
-.micro .ico { width: 12px; height: 12px; }
-.micro.lv-overdue { color: var(--red); background: color-mix(in srgb, var(--red) 11%, transparent); }
-.micro.lv-today { color: #fff; background: var(--clay); }
-.micro.lv-soon { color: var(--clay); background: color-mix(in srgb, var(--clay) 12%, transparent); }
-.micro.lv-week { color: var(--blue); background: var(--blue-tint); }
-.micro.lv-done { color: var(--sage); background: color-mix(in srgb, var(--sage) 12%, transparent); }
-.micro.lv-none { color: var(--ink-3); background: none; box-shadow: inset 0 0 0 1px var(--hair); }
-.role { width: 42px; padding: 0; }
-.role.r-記者 { color: var(--blue); background: var(--blue-tint); }
-.role.r-攝影 { color: var(--clay); background: color-mix(in srgb, var(--clay) 12%, transparent); }
-.role.r-美編 { color: var(--sage); background: color-mix(in srgb, var(--sage) 13%, transparent); }
+/* 狀態文字顏色 */
+.lv-overdue { color: var(--red); } .lv-today, .lv-soon { color: var(--orange); } .lv-week { color: var(--blue); }
+.lv-done { color: var(--green); } .lv-none { color: var(--label-3); }
 
-/* 可勾選的膠囊 */
-.tg { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px 0 9px; border-radius: var(--pill); background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); color: var(--ink-2); font-size: 12.5px; font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; -webkit-user-select: none; transition: background .15s, color .15s, box-shadow .15s; }
-.tg input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
-.tg .box { display: grid; place-items: center; width: 15px; height: 15px; border-radius: 4px; box-shadow: inset 0 0 0 1.5px currentColor; opacity: .7; }
-.tg .box .ico { width: 11px; height: 11px; stroke-width: 3; opacity: 0; }
-.tg:hover { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 22%, var(--hair)); }
-.tg:has(input:focus-visible) { outline: 3px solid color-mix(in srgb, var(--blue) 45%, transparent); outline-offset: 2px; }
-.tg:has(input:checked) .box { opacity: 1; box-shadow: none; background: currentColor; }
-.tg:has(input:checked) .box .ico { opacity: 1; color: var(--surface); }
-.tg-done:has(input:checked) { color: var(--sage); background: color-mix(in srgb, var(--sage) 12%, transparent); box-shadow: none; }
-.tg-req:has(input:checked) { color: var(--blue); background: var(--blue-tint); box-shadow: none; }
+/* ── 搜尋列 ── */
+.searchbar { position: relative; display: block; margin-bottom: 4px; }
+.searchbar .ico { position: absolute; top: 50%; left: 8px; width: 17px; height: 17px; transform: translateY(-50%); color: var(--gray); stroke-width: 2.2; pointer-events: none; }
+.searchbar input { width: 100%; height: 36px; padding: 0 10px 0 31px; border: none; border-radius: 10px; background: var(--fill); color: var(--label); font-size: 17px; outline: none; -webkit-appearance: none; appearance: none; }
+.searchbar input::placeholder { color: var(--gray); }
 
-/* ── 今日提醒 ── */
-.today-card { margin-bottom: 32px; padding: 20px 22px 10px; background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--paper-shadow); }
-.today-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
-.today-eyebrow { color: var(--blue); font-size: 13px; font-weight: 600; }
-.today-date { font-size: 22px; font-weight: 700; letter-spacing: -.025em; line-height: 1.25; }
-.today-rows { display: flex; flex-direction: column; }
-.today-row { display: grid; grid-template-columns: 92px 1fr auto; gap: 12px; align-items: center; width: 100%; padding: 12px 0; border: none; border-top: .5px solid var(--hair); background: none; text-align: left; }
-.today-row .micro { justify-self: start; }
-.today-row b { display: block; font-size: 14.5px; font-weight: 600; }
-.today-row small { display: block; margin-top: 1px; color: var(--ink-2); font-size: 12.5px; }
-.today-row > .ico { color: var(--ink-3); width: 16px; height: 16px; }
-.today-row:hover b { text-decoration: underline; text-underline-offset: 3px; }
-.today-empty { padding: 12px 0 14px; border-top: .5px solid var(--hair); color: var(--ink-2); font-size: 14px; }
+/* ── 分段控制 ── */
+.seg { display: flex; width: 100%; padding: 2px; border-radius: 9px; background: var(--fill); }
+.seg button { flex: 1; min-width: 0; height: 28px; padding: 0 4px; border: none; border-radius: 7px; background: none; color: var(--label); font-size: 13px; font-weight: 500; white-space: nowrap; transition: background .2s, box-shadow .2s; }
+.seg button[aria-checked="true"] { background: var(--seg-on); box-shadow: 0 3px 8px rgba(0,0,0,.12), 0 3px 1px rgba(0,0,0,.04); font-weight: 600; }
+.seg-wrap { margin-bottom: 4px; }
 
-/* ── 搜尋 ── */
-.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 26px; }
-.search { position: relative; flex: 1; min-width: 200px; }
-.search .ico { position: absolute; left: 13px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
-.search input { width: 100%; height: 40px; padding: 0 14px 0 38px; border: none; border-radius: var(--pill); background: var(--fill); font-size: 14px; outline: none; transition: background .15s, box-shadow .15s; }
-.search input:focus { background: var(--surface); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 35%, transparent); }
+/* ── 案子 ── */
+.job { margin-bottom: 12px; transition: box-shadow .4s; --sep-left: 74px; }
+.job.flash { box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 55%, transparent); }
+.job-head { align-items: flex-start; --sep-left: 16px; }
+.cal { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 46px; height: 48px; flex: none; border-radius: 11px; background: var(--fill); }
+.cal-m { color: var(--red); font-size: 11px; font-weight: 600; line-height: 13px; }
+.cal-d { font-family: var(--display); font-size: 24px; font-weight: 400; line-height: 28px; }
+.cal.none .cal-m { color: var(--label-2); } .cal.none .cal-d { color: var(--label-3); }
+.job-title { font-size: 17px; font-weight: 600; line-height: 22px; overflow-wrap: anywhere; }
+.job-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; margin-top: 2px; color: var(--label-2); font-size: 13px; line-height: 18px; }
+.job-meta > span { display: inline-flex; align-items: center; gap: 3px; }
+.job-meta .ico { width: 13px; height: 13px; stroke-width: 2; }
+.job-head .chev { align-self: center; }
+.job.lv-done .job-head, .job.lv-done .crew-cell { opacity: .55; }
 
-/* ── 分組 ── */
-.group { margin-bottom: 36px; }
-.group-head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 14px; padding: 0; border: none; background: none; color: var(--ink); text-align: left; }
-.group-head h2 { display: flex; align-items: center; gap: 9px; margin: 0; font-family: var(--serif); font-size: 19px; font-weight: 700; letter-spacing: .08em; }
-.group-head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
-.group-head .n { color: var(--ink-3); font-size: 13px; font-weight: 600; }
-.group-head .hint { color: var(--ink-3); font-size: 12.5px; }
-.g-overdue .dot { background: var(--red); } .g-today .dot { background: var(--clay); }
-.g-soon .dot { background: color-mix(in srgb, var(--clay) 60%, var(--bg)); } .g-week .dot { background: var(--fog); }
-.g-nodate .dot { background: none; box-shadow: inset 0 0 0 1.5px var(--ink-3); } .g-done .dot { background: var(--sage); }
-.group-head.toggle { cursor: pointer; }
-.group-head.toggle .ico { align-self: center; width: 16px; height: 16px; color: var(--ink-3); transition: transform .2s; }
-.group-head.toggle.open .ico { transform: rotate(90deg); }
-.group-list { display: flex; flex-direction: column; gap: 14px; }
-
-/* ── 案子卡片 ── */
-.job { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--paper-shadow); transition: box-shadow .3s; }
-.job.flash { box-shadow: 0 0 0 2px var(--fog), var(--paper-shadow); }
-.job.lv-done .job-head, .job.lv-done .crew { opacity: .66; }
-.job-head { display: flex; gap: 16px; padding: 18px 16px 14px; }
-.datebox { flex: none; width: 64px; padding-top: 2px; text-align: center; }
-.datebox .md { font-size: 24px; font-weight: 700; letter-spacing: -.03em; line-height: 1.05; }
-.datebox .wd { margin-top: 4px; color: var(--ink-2); font-size: 12px; font-weight: 500; }
-.datebox .tm { margin-top: 1px; color: var(--ink); font-size: 12.5px; font-weight: 600; }
-.datebox.none .md { color: var(--ink-3); }
-.job-main { flex: 1; min-width: 0; }
-.job-kicker { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: var(--ink-2); font-size: 12.5px; font-weight: 600; }
-.job-kicker .sep { color: var(--hair); }
-.job-topic { margin: 4px 0 8px; font-family: var(--serif); font-size: 19px; font-weight: 700; letter-spacing: .05em; line-height: 1.4; word-break: break-word; text-wrap: balance; }
-.job-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; color: var(--ink-2); font-size: 13px; }
-.job-meta span:not(.micro) { display: inline-flex; align-items: center; gap: 5px; }
-.job-meta .ico { width: 14px; height: 14px; color: var(--ink-3); }
-.job-tools { display: flex; gap: 2px; flex: none; align-items: flex-start; margin: -4px -4px 0 0; }
-
-.crew { margin: 0 16px 16px 96px; padding: 0 14px; list-style: none; background: var(--paper-2); border-radius: var(--r-md); }
-.crew-row { display: grid; grid-template-columns: 42px minmax(56px,1fr) 92px 112px 82px auto auto; align-items: center; gap: 12px; padding: 11px 0; border-top: .5px solid var(--hair); font-size: 13.5px; }
-.crew-row:first-child { border-top: none; }
-.crew-row .name { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.crew-row .fee { color: var(--ink); font-weight: 600; text-align: right; }
-.crew-row .due { color: var(--ink-2); white-space: nowrap; }
-.crew-row .cd { justify-self: start; }
-.crew-row.is-done .name, .crew-row.is-done .due { color: var(--ink-3); }
-.crew-empty { margin: 0 16px 16px 96px; padding: 12px 14px; border-radius: var(--r-md); background: var(--paper-2); color: var(--ink-3); font-size: 13px; }
-.job-note { display: flex; gap: 6px; margin: -4px 16px 16px 96px; color: var(--ink-2); font-size: 13px; white-space: pre-wrap; word-break: break-word; }
-.job-note .ico { width: 14px; height: 14px; margin-top: 3px; color: var(--ink-3); }
-
-.empty { padding: 56px 20px; text-align: center; color: var(--ink-2); }
-.empty .ico { width: 34px; height: 34px; color: var(--ink-3); stroke-width: 1.3; }
-.empty h3 { margin: 12px 0 6px; color: var(--ink); font-family: var(--serif); font-size: 20px; letter-spacing: .06em; }
-.empty p { margin: 0 0 18px; font-size: 14px; }
+.crew-cell { align-items: flex-start; padding-left: 16px; }
+.ring { position: relative; display: grid; place-items: center; width: 46px; height: 24px; flex: none; cursor: pointer; }
+.ring input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.ring span { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--gray-3); transition: box-shadow .15s; }
+.ring span::after { content: ""; width: 14px; height: 14px; border-radius: 50%; background: var(--green); transform: scale(0); transition: transform .25s var(--ease); }
+.ring input:checked + span { box-shadow: inset 0 0 0 1.5px var(--green); }
+.ring input:checked + span::after { transform: scale(1); }
+.ring input:focus-visible + span { outline: 3px solid color-mix(in srgb, var(--blue) 50%, transparent); outline-offset: 2px; }
+.crew-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.role-tag { flex: none; color: var(--gray); font-size: 13px; font-weight: 600; }
+.role-tag.r-記者 { color: var(--blue); } .role-tag.r-攝影 { color: var(--orange); } .role-tag.r-美編 { color: var(--teal); }
+.crew-name { flex: 1; min-width: 0; overflow: hidden; font-size: 17px; text-overflow: ellipsis; white-space: nowrap; }
+.crew-fee { flex: none; color: var(--label-2); font-size: 17px; }
+.crew-line2 { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 3px; }
+.due-text { color: var(--label-2); font-size: 15px; line-height: 20px; }
+.nowrap { white-space: nowrap; }
+.capsule { position: relative; display: inline-flex; align-items: center; gap: 4px; height: 28px; flex: none; padding: 0 11px 0 8px; border-radius: 14px; background: var(--fill); color: var(--label-2); font-size: 13px; font-weight: 600; cursor: pointer; user-select: none; -webkit-user-select: none; transition: background .2s, color .2s; }
+.capsule input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.capsule .ico { width: 16px; height: 16px; stroke-width: 2; }
+.capsule .on { display: none; }
+.capsule:has(input:checked) { background: color-mix(in srgb, var(--blue) 15%, transparent); color: var(--blue); }
+.capsule:has(input:checked) .on { display: block; } .capsule:has(input:checked) .off { display: none; }
+.capsule:has(input:focus-visible) { outline: 3px solid color-mix(in srgb, var(--blue) 50%, transparent); outline-offset: 2px; }
+.note-cell { align-items: flex-start; padding-left: 0; color: var(--label-2); font-size: 15px; line-height: 20px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.note-cell .ico { width: 16px; height: 16px; margin: 2px 15px 0; color: var(--gray); }
+.muted-cell { color: var(--label-2); font-size: 15px; }
 
 /* ── 人員 ── */
-.seg-wrap { margin-bottom: 22px; }
-.people { display: flex; flex-wrap: wrap; gap: 14px; }
-.person { display: flex; flex-direction: column; width: 300px; flex: 0 0 300px; padding: 18px 18px 16px; background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--paper-shadow); }
-.p-head { display: flex; align-items: center; gap: 10px; }
-.p-name { flex: 1; min-width: 0; overflow: hidden; font-size: 17px; font-weight: 700; letter-spacing: -.01em; text-overflow: ellipsis; white-space: nowrap; }
-.p-head .icon-btn { margin: -6px -6px -6px 0; }
-.p-contact { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; color: var(--ink-2); font-size: 13px; word-break: break-all; }
-.p-contact span { display: flex; align-items: center; gap: 8px; }
-.p-contact .ico { width: 14px; height: 14px; color: var(--ink-3); }
-.p-contact a { color: var(--ink); }
-.p-empty { margin-top: 12px; color: var(--ink-3); font-size: 13px; }
-.p-stats { display: flex; gap: 16px; margin-top: auto; padding-top: 12px; border-top: .5px solid var(--hair); color: var(--ink-2); font-size: 13px; }
-.p-contact + .p-stats, .p-empty + .p-stats, .p-note + .p-stats, .p-next + .p-stats { margin-top: 14px; }
-.p-stats b { color: var(--ink); font-weight: 600; }
-.p-next { margin-top: 10px; color: var(--ink-2); font-size: 12.5px; }
-.p-note { margin-top: 10px; color: var(--ink-3); font-size: 12.5px; white-space: pre-wrap; }
+.person-cell { --sep-left: 68px; }
+.person-cell .cell-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.avatar { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 50%; background: linear-gradient(180deg, #a5abb8, #858994); color: #fff; font-size: 17px; font-weight: 600; }
 
 /* ── 稿費 ── */
-.fee-hero { display: flex; flex-wrap: wrap; gap: 14px 48px; margin-bottom: 28px; padding: 24px 26px; background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--paper-shadow); }
-.fee-hero .k { margin-bottom: 10px; }
-.fee-hero .amt { font-size: 40px; font-weight: 700; letter-spacing: -.035em; line-height: 1; }
-.fee-hero .sub { margin-top: 8px; color: var(--ink-2); font-size: 13px; }
-.fee-hero .side .amt { font-size: 24px; }
-.months { display: flex; flex-direction: column; gap: 14px; }
-.month { padding: 18px 20px 14px; background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--paper-shadow); }
-.month-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
-.month-head h3 { margin: 0; font-family: var(--serif); font-size: 18px; font-weight: 700; letter-spacing: .06em; }
-.month-head .cnt { color: var(--ink-3); font-size: 13px; }
-.month-head .sum { margin-left: auto; font-size: 19px; font-weight: 700; letter-spacing: -.02em; }
-.fee-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.fee-table td { padding: 9px 0; border-top: .5px solid var(--hair); }
-.fee-table td.role-cell { width: 54px; }
-.fee-table td.c { width: 64px; color: var(--ink-3); text-align: right; }
-.fee-table td.r { width: 120px; font-weight: 600; text-align: right; }
-.month details { margin-top: 6px; }
-.month summary { display: inline-flex; align-items: center; gap: 4px; padding: 4px 0; color: var(--blue); font-size: 13px; font-weight: 600; cursor: pointer; list-style: none; }
-.month summary::-webkit-details-marker { display: none; }
-.month summary .ico { width: 14px; height: 14px; transition: transform .2s; }
-.month details[open] summary .ico { transform: rotate(90deg); }
-.month-jobs { margin: 6px 0 4px; padding: 0; list-style: none; }
-.month-jobs li { display: grid; grid-template-columns: 78px 1fr auto; gap: 12px; padding: 9px 0; border-top: .5px dashed var(--hair); font-size: 13px; }
-.month-jobs .d { color: var(--ink-3); }
-.month-jobs .t small { display: block; margin-top: 2px; color: var(--ink-3); }
-.month-jobs .s { font-weight: 600; }
+.big-amt { margin: 2px 0; font-family: var(--display); font-size: 34px; font-weight: 700; line-height: 41px; }
+.amt { flex: none; min-width: 92px; font-size: 17px; text-align: right; }
+.detail-cell { padding-top: 9px; padding-bottom: 9px; }
+.detail-cell .cell-title { font-size: 15px; line-height: 20px; }
+.detail-cell .cell-sub { font-size: 13px; line-height: 18px; }
+.toggle-cell { color: var(--blue); }
+.toggle-cell .chev { margin-left: auto; transition: transform .2s; }
+.toggle-cell.open .chev { transform: rotate(90deg); }
 
-/* ── 視窗：毛玻璃 sheet，只有內容區會捲動 ── */
-.modal { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 24px; overscroll-behavior: contain; }
-.modal.stack { z-index: 300; }
-.modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.28); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); touch-action: none; }
-.modal-card { position: relative; display: flex; flex-direction: column; width: min(720px, 100%); max-height: 92vh; max-height: 92dvh; overflow: hidden; background: var(--glass-strong); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border-radius: 24px; box-shadow: var(--sheet-shadow); }
-.modal-card.narrow { width: min(480px, 100%); }
-.modal-head { display: flex; flex: none; align-items: center; justify-content: space-between; padding: 20px 24px 8px; }
-.modal-head h3 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
-.modal-close { display: grid; place-items: center; width: 30px; height: 30px; border: none; border-radius: 50%; background: var(--fill); color: var(--ink-2); }
-.modal-close .ico { width: 16px; height: 16px; }
-.modal-body { flex: 1; min-height: 0; padding: 12px 24px 20px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
-.modal-foot { display: flex; flex: none; align-items: center; gap: 10px; padding: 14px 24px 18px; border-top: .5px solid var(--hair); }
-.spacer { flex: 1; }
-.form-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px 14px; }
-.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.field.full { grid-column: 1 / -1; }
-.field > span, .ce-lbl { color: var(--ink-2); font-size: 12px; font-weight: 500; }
-.field input, .field select, .field textarea, .ce-row input, .ce-row select {
-  display: block; width: 100%; min-width: 0; max-width: 100%; height: 42px; margin: 0; padding: 0 12px;
-  border: none; border-radius: var(--r-sm); background-color: var(--fill); font-size: 15px; color: var(--ink);
-  outline: none; transition: background-color .15s, box-shadow .15s;
+/* 提示卡、空狀態 */
+.notice { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; padding: 12px 16px; background: var(--cell); border-radius: 10px; color: var(--label-2); font-size: 15px; line-height: 20px; }
+.notice code { font-size: 13px; }
+.empty { display: flex; flex-direction: column; align-items: center; padding: 56px 24px; text-align: center; }
+.empty > .ico { width: 44px; height: 44px; color: var(--gray); stroke-width: 1.5; }
+.empty h3 { margin: 14px 0 6px; font-family: var(--display); font-size: 22px; font-weight: 700; }
+.empty p { margin: 0 0 16px; color: var(--label-2); font-size: 15px; line-height: 20px; }
+.fill-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 150px; height: 50px; padding: 0 22px; border: none; border-radius: 12px; background: var(--blue); color: #fff; font-size: 17px; font-weight: 600; }
+.fill-btn:active { opacity: .7; }
+
+/* ── 底部分頁列 ── */
+.tabbar { position: fixed; right: 0; bottom: 0; left: 0; z-index: 60; padding-bottom: env(safe-area-inset-bottom); background: var(--bar); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border-top: .5px solid var(--sep); }
+.tabbar-in { display: flex; max-width: 520px; height: var(--tabbar-h); margin: 0 auto; }
+.tab-item { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding-top: 2px; border: none; background: none; color: #999999; font-size: 10px; font-weight: 500; }
+.tab-item.active { color: var(--blue); }
+.tab-item .ti-icon { position: relative; display: block; height: 26px; }
+.tab-item .ico { width: 26px; height: 26px; stroke-width: 1.7; }
+.tab-item.active .ico { stroke-width: 2.1; }
+.badge { position: absolute; top: -3px; left: 17px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--red); color: #fff; font-size: 13px; font-weight: 500; line-height: 18px; text-align: center; }
+
+/* ── 表單 sheet：手機從底部滑上來，桌機置中 ── */
+.sheet { position: fixed; inset: 0; z-index: 200; display: flex; align-items: flex-end; justify-content: center; }
+.sheet.stack { z-index: 300; }
+.sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.4); opacity: 0; transition: opacity .35s; touch-action: none; }
+.sheet.show .sheet-backdrop, .asheet.show .sheet-backdrop { opacity: 1; }
+.sheet-card { position: relative; display: flex; flex-direction: column; width: 100%; height: calc(100% - max(env(safe-area-inset-top), 20px) - 10px); overflow: hidden; background: var(--sheet-bg); border-radius: 12px 12px 0 0; transform: translateY(100%); transition: transform .4s var(--ease); }
+.sheet.show .sheet-card { transform: none; }
+.sheet-nav { display: grid; flex: none; grid-template-columns: 1fr auto 1fr; align-items: center; height: 56px; padding: 0 16px; }
+.sheet-title { font-size: 17px; font-weight: 600; text-align: center; }
+.nav-text { justify-self: start; padding: 10px 0; border: none; background: none; color: var(--blue); font-size: 17px; }
+.nav-text.strong { justify-self: end; font-weight: 600; }
+.nav-text:active { opacity: .35; }
+.sheet-body { flex: 1; min-height: 0; padding: 4px 16px calc(36px + env(safe-area-inset-bottom)); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.form-group { margin-bottom: 22px; overflow: hidden; background: var(--sheet-cell); border-radius: 10px; }
+.group-caption { padding: 0 16px 7px; color: var(--label-2); font-size: 13px; }
+.group-foot { margin: -14px 0 22px; padding: 0 16px; color: var(--label-2); font-size: 13px; line-height: 18px; }
+.form-row { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 6px 16px; border: none; background: none; color: var(--label); font-size: 17px; text-align: left; }
+.form-row + .form-row::before { content: ""; position: absolute; top: 0; right: 0; left: 16px; height: .5px; background: var(--sep); }
+.fr-label { flex: none; width: 64px; }
+.form-row input:not([type="checkbox"]):not([type="date"]):not([type="time"]), .form-row select, .form-row textarea {
+  flex: 1; min-width: 0; height: 32px; margin: 0; padding: 0; border: none; background-color: transparent; color: var(--label); font-size: 17px; outline: none; -webkit-appearance: none; appearance: none;
 }
-.field textarea { height: auto; min-height: 72px; padding: 10px 12px; resize: vertical; line-height: 1.5; }
-.field input:focus, .field select:focus, .field textarea:focus, .ce-row input:focus, .ce-row select:focus { background-color: var(--surface); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 35%, transparent); }
-/* iOS 的日期／時間欄有內建最小寬度，會把格子撐破，要拿掉原生外觀 */
-input[type="date"], input[type="time"] { -webkit-appearance: none; appearance: none; text-align: left; }
-input[type="date"]::-webkit-date-and-time-value, input[type="time"]::-webkit-date-and-time-value { text-align: left; min-height: 1.5em; }
-/* iPhone／iPad：拿掉原生外觀後日期文字會貼在上緣，用行高撐滿欄位讓它上下置中 */
-@supports (-webkit-touch-callout: none) {
-  input[type="date"], input[type="time"] { line-height: 42px; }
-  input[type="date"]::-webkit-date-and-time-value, input[type="time"]::-webkit-date-and-time-value { margin: 0; line-height: 42px; }
-}
-select { -webkit-appearance: none; appearance: none; padding-right: 32px !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238a949b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; }
+.form-row input::placeholder, .form-row textarea::placeholder { color: var(--label-3); }
+.form-row textarea { height: auto; min-height: 88px; padding: 5px 0; resize: vertical; line-height: 22px; }
+.money { flex: none; margin-right: -6px; color: var(--label-2); }
+/* iOS 的精簡日期挑選器：灰色膠囊，保留原生外觀讓文字自動置中 */
+.pill-input { flex: none; height: 34px; min-width: 128px; margin: 0 0 0 auto; padding: 0 11px; border: none; border-radius: 8px; background-color: var(--fill); color: var(--label); font-size: 17px; text-align: center; outline: none; }
+.pill-input:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--blue) 50%, transparent); }
+/* 選單：右對齊＋上下箭頭，跟 iOS 的 Menu Picker 一樣 */
+.form-row select.menu-select { padding-right: 22px; color: var(--label-2); text-align: right; text-align-last: right; cursor: pointer;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 15 5 5 5-5'/%3E%3Cpath d='m7 9 5-5 5 5'/%3E%3C/svg%3E") no-repeat right center; }
+.form-row select.menu-select.has-value { color: var(--label); }
+.form-row.action { color: var(--blue); cursor: pointer; }
+.form-row.action .ico { width: 22px; height: 22px; stroke-width: 1.8; }
+.form-row.action:active { background: var(--cell-hl); }
+.form-row.danger { color: var(--red); }
+.form-row.seg-row { padding-top: 8px; padding-bottom: 8px; }
+.form-row .cell-value { margin-left: auto; }
+/* iOS 開關 */
+.switch { position: relative; display: inline-block; width: 51px; height: 31px; flex: none; margin-left: auto; }
+.switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.switch .track { position: absolute; inset: 0; border-radius: 16px; background: var(--switch-off); transition: background .25s; pointer-events: none; }
+.switch .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.15), 0 3px 1px rgba(0,0,0,.06); transition: transform .25s var(--ease); }
+.switch input:checked + .track { background: var(--green); }
+.switch input:checked + .track::after { transform: translateX(20px); }
+.switch input:focus-visible + .track { outline: 3px solid color-mix(in srgb, var(--blue) 50%, transparent); outline-offset: 2px; }
 
-.crew-editor { margin: 22px 0 18px; }
-.ce-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 12px; }
-.ce-title h4 { margin: 0; font-size: 15px; font-weight: 700; }
-.ce-title .hint { color: var(--ink-3); font-size: 12px; }
-.ce-row { display: grid; grid-template-columns: 92px minmax(0,1.3fr) 108px 156px 32px; grid-template-areas: "role person fee due x" "flags flags flags flags flags"; align-items: end; gap: 10px; margin-bottom: 10px; padding: 12px; background: var(--paper-2); border-radius: var(--r-md); }
-.ce-cell { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.ce-c-role { grid-area: role; } .ce-c-person { grid-area: person; } .ce-c-fee { grid-area: fee; } .ce-c-due { grid-area: due; }
-.ce-row .ce-x { grid-area: x; align-self: end; width: 30px; height: 30px; margin-bottom: 6px; }
-.ce-row input, .ce-row select { background-color: var(--surface); }
-.ce-flags { grid-area: flags; display: flex; flex-wrap: wrap; gap: 8px; padding-top: 2px; }
-.ce-empty { margin-bottom: 10px; padding: 14px; border-radius: var(--r-md); background: var(--paper-2); color: var(--ink-3); font-size: 13px; }
+/* ── 動作表 ── */
+.asheet { position: fixed; inset: 0; z-index: 400; display: flex; align-items: flex-end; justify-content: center; padding: 0 8px calc(8px + env(safe-area-inset-bottom)); }
+.as-panel { position: relative; width: 100%; max-width: 420px; transform: translateY(120%); transition: transform .4s var(--ease); }
+.asheet.show .as-panel { transform: none; }
+.as-group { margin-bottom: 8px; overflow: hidden; background: var(--as-bg); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border-radius: 14px; }
+.as-title { padding: 14px 16px; color: var(--label-2); font-size: 13px; text-align: center; }
+.as-btn { display: block; width: 100%; height: 57px; border: none; border-top: .5px solid var(--sep); background: none; color: var(--blue); font-size: 20px; }
+.as-btn:active { background: var(--fill); }
+.as-cancel { display: block; width: 100%; height: 57px; border: none; border-radius: 14px; background: var(--as-cancel); color: var(--blue); font-size: 20px; font-weight: 600; }
+.as-cancel:active { background: var(--cell-hl); }
 
-/* Toast：深色玻璃膠囊 */
-#toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 900; max-width: calc(100% - 32px); padding: 10px 20px; border-radius: var(--pill); background: rgba(29,29,31,.86); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); color: #fff; font-size: 14px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,.2); opacity: 0; pointer-events: none; transform: translate(-50%, 8px); transition: opacity .2s, transform .2s; }
+/* Toast：分頁列上方的小膠囊 */
+#toast { position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 14px); z-index: 900; max-width: calc(100% - 32px); padding: 11px 18px; border-radius: 22px; background: var(--as-bg); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); color: var(--label); font-size: 15px; font-weight: 500; box-shadow: 0 8px 30px rgba(0,0,0,.16); opacity: 0; pointer-events: none; transform: translate(-50%, 10px) scale(.96); transition: opacity .25s, transform .35s var(--ease); }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-/* ── 平板以下：卡片內每人改三行 ── */
-@media (max-width: 900px) {
-  .crew-row { grid-template-columns: 42px minmax(0,1fr) auto; grid-template-areas: "role name cd" ". due done" ". fee req"; row-gap: 8px; }
-  .crew-row .role { grid-area: role; } .crew-row .name { grid-area: name; } .crew-row .cd { grid-area: cd; justify-self: end; }
-  .crew-row .due { grid-area: due; } .crew-row .tg-done { grid-area: done; justify-self: end; }
-  .crew-row .fee { grid-area: fee; text-align: left; } .crew-row .tg-req { grid-area: req; justify-self: end; }
+@media (min-width: 761px) {
+  main { padding-left: 24px; padding-right: 24px; }
+  .sheet { align-items: center; padding: 32px; }
+  .sheet-card { max-width: 560px; height: auto; max-height: min(86vh, 900px); border-radius: 14px; box-shadow: 0 24px 80px rgba(0,0,0,.3); opacity: 0; transform: translateY(24px) scale(.98); transition: transform .35s var(--ease), opacity .2s; }
+  .sheet.show .sheet-card { opacity: 1; transform: none; }
+  .asheet { align-items: center; }
 }
-@media (max-width: 760px) {
-  .topnav-in { flex-wrap: wrap; gap: 8px 10px; min-height: 0; padding: 8px 14px; }
-  .tabs { order: 3; display: flex; width: 100%; }
-  .tab { flex: 1; justify-content: center; padding: 6px 8px; }
-  .lbl { display: none; }
-  .nav-right .text-btn { padding: 6px; }
-  .primary-btn { padding: 8px 14px; }
-}
-@media (max-width: 600px) {
-  main { padding: 16px 12px 80px; }
-  .today-card { margin-bottom: 26px; padding: 16px 16px 6px; }
-  .today-date { font-size: 20px; }
-  .today-row { grid-template-columns: 80px 1fr auto; gap: 10px; }
-  .search input { font-size: 16px; }
-  .group { margin-bottom: 28px; }
-  .job-head { gap: 12px; padding: 14px 12px 12px 10px; }
-  .datebox { width: 50px; }
-  .datebox .md { font-size: 20px; }
-  .job-topic { font-size: 17px; }
-  .crew, .crew-empty { margin: 0 10px 10px; }
-  .job-note { margin: -2px 12px 12px; }
-  .person { width: 100%; flex: 1 1 100%; }
-  .fee-hero { padding: 20px; }
-  .fee-hero .amt { font-size: 34px; }
-  .fee-table td.r { width: 96px; }
-  .month-jobs li { grid-template-columns: 1fr auto; }
-  .month-jobs .d { grid-column: 1 / -1; }
-
-  /* 視窗：底部抽屜，頁首頁尾固定，只有中間捲動 */
-  .modal { padding: 0; place-items: end stretch; }
-  .modal-card, .modal-card.narrow { width: 100%; max-height: 94vh; max-height: 94dvh; border-radius: 24px 24px 0 0; }
-  .modal-head { padding: 18px 20px 8px; }
-  .modal-body { padding: 10px 20px 20px; }
-  .modal-foot { padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); }
-  .form-grid { grid-template-columns: minmax(0,1fr); }
-  .field input, .field select, .field textarea, .ce-row input, .ce-row select, #pin-input { font-size: 16px; }   /* 防 iOS 自動放大 */
-  .ce-row { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 30px; grid-template-areas: "role person x" "fee due due" "flags flags flags"; gap: 10px 8px; padding: 10px; }
-  .primary-btn { padding: 11px 22px; font-size: 15px; }
+@media (max-width: 380px) {
+  .fr-label { width: 56px; }
+  .seg button { font-size: 12px; }
 }
 </style>
 </head>
 <body>
 
-<!-- PIN -->
+<!-- 鎖定畫面 -->
 <div id="pin-screen">
-  <form class="pin-box" onsubmit="checkPin(event)">
-    <div class="kicker">Interview Crew</div>
-    <h1>廣編採訪排程</h1>
-    <input id="pin-input" type="password" inputmode="numeric" autocomplete="off" placeholder="••••" aria-label="密碼">
-    <div class="pin-err" id="pin-err"></div>
-  </form>
+  <div class="lock-icon" data-icon="mic"></div>
+  <div class="lock-title">輸入密碼</div>
+  <div class="lock-sub">廣編採訪排程</div>
+  <div class="dots" id="pin-dots"><i></i><i></i><i></i><i></i></div>
+  <div class="lock-err" id="pin-err"></div>
+  <div class="keypad" id="keypad"></div>
 </div>
 
-<header class="topnav">
-  <div class="topnav-in">
-    <div class="brand"><span class="sync-dot" id="sync-dot" title="連線中"></span>廣編採訪排程</div>
-    <nav class="tabs" aria-label="分頁">
-      <button class="tab" data-tab="schedule" onclick="setTab('schedule')">排程<span class="count" id="cnt-schedule"></span></button>
-      <button class="tab" data-tab="people" onclick="setTab('people')">人員<span class="count" id="cnt-people"></span></button>
-      <button class="tab" data-tab="fees" onclick="setTab('fees')">稿費</button>
-    </nav>
+<header class="navbar" id="navbar">
+  <div class="nav-in">
+    <div class="nav-title" id="nav-title">排程</div>
     <div class="nav-right">
-      <button class="text-btn" id="btn-ics" title="匯出未來所有採訪與交稿到行事曆" onclick="exportAllICS()"></button>
-      <button class="text-btn" id="btn-backup" title="下載 JSON 備份" onclick="exportBackup()"></button>
-      <button class="primary-btn" id="btn-add" onclick="primaryAdd()"></button>
+      <button class="nav-btn" data-icon="circle-ellipsis" onclick="openActions()" aria-label="更多"></button>
+      <button class="nav-btn" data-icon="plus" onclick="primaryAdd()" aria-label="新增"></button>
     </div>
   </div>
 </header>
 
 <main>
-  <div class="banner demo" id="demo-banner" hidden></div>
-  <div class="banner warn" id="sync-banner" hidden></div>
+  <h1 class="large-title" id="large-title">排程</h1>
+  <div class="lt-sub" id="lt-sub"></div>
+  <div class="notice" id="demo-banner" hidden></div>
+  <div class="notice" id="sync-banner" hidden></div>
 
   <section id="tab-schedule">
-    <div class="today-card" id="today-panel"></div>
-    <div class="toolbar">
-      <label class="search" id="search-wrap"><input id="q" type="search" placeholder="搜尋客戶、主題、受訪者、人員" oninput="ui.q = this.value; renderSchedule()"></label>
-    </div>
+    <label class="searchbar" id="search-wrap"><input id="q" type="search" placeholder="搜尋" enterkeyhint="search" oninput="ui.q = this.value; renderSchedule()"></label>
+    <div id="today-panel"></div>
     <div id="groups"></div>
   </section>
 
   <section id="tab-people" hidden>
-    <div class="seg-wrap"><div class="tabs" id="role-filters" style="margin:0"></div></div>
-    <div class="people" id="people-list"></div>
+    <div class="seg-wrap"><div class="seg" id="role-filters" role="radiogroup" aria-label="角色篩選"></div></div>
+    <div id="people-list"></div>
   </section>
 
   <section id="tab-fees" hidden>
-    <div class="fee-hero" id="fee-hero"></div>
-    <div class="months" id="fee-months"></div>
+    <div id="fee-hero"></div>
+    <div id="fee-months"></div>
   </section>
 </main>
+
+<nav class="tabbar" aria-label="分頁">
+  <div class="tabbar-in">
+    <button class="tab-item" data-tab="schedule" onclick="setTab('schedule')"><span class="ti-icon" data-icon="calendar-days"></span>排程</button>
+    <button class="tab-item" data-tab="people" onclick="setTab('people')"><span class="ti-icon" data-icon="users"></span>人員</button>
+    <button class="tab-item" data-tab="fees" onclick="setTab('fees')"><span class="ti-icon" data-icon="wallet"></span>稿費</button>
+  </div>
+</nav>
 
 <datalist id="client-list"></datalist>
 
 <!-- 案子表單 -->
-<div class="modal" id="job-modal" hidden>
-  <div class="modal-backdrop" onclick="closeModal('job-modal')"></div>
-  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="job-modal-title">
-    <div class="modal-head">
-      <h3 id="job-modal-title">新案子</h3>
-      <button class="modal-close" data-icon="x" onclick="closeModal('job-modal')" aria-label="關閉"></button>
+<div class="sheet" id="job-sheet" hidden>
+  <div class="sheet-backdrop" onclick="closeSheet('job-sheet')"></div>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="job-sheet-title">
+    <div class="sheet-nav">
+      <button class="nav-text" onclick="closeSheet('job-sheet')">取消</button>
+      <div class="sheet-title" id="job-sheet-title">新案子</div>
+      <button class="nav-text strong" onclick="saveJob()">儲存</button>
     </div>
-    <div class="modal-body">
-      <div class="form-grid">
-        <label class="field"><span>客戶</span><input id="j-client" list="client-list" placeholder="例：國泰世華銀行" autocomplete="off"></label>
-        <label class="field"><span>刊期／上線</span><input id="j-issue" placeholder="例：遠見 12 月號、線上 11/20"></label>
-        <label class="field full"><span>廣編主題</span><input id="j-topic" placeholder="例：永續金融 CEO 專訪"></label>
-        <label class="field"><span>受訪者</span><input id="j-interviewee" placeholder="姓名＋職稱"></label>
-        <label class="field"><span>採訪地點</span><input id="j-location" placeholder="例：客戶總部 18F"></label>
-        <label class="field"><span>採訪日期</span><input id="j-date" type="date" onchange="onInterviewDateChange()"></label>
-        <label class="field"><span>採訪時間</span><input id="j-time" type="time"></label>
+    <div class="sheet-body">
+      <div class="form-group">
+        <label class="form-row"><span class="fr-label">客戶</span><input id="j-client" list="client-list" placeholder="國泰世華銀行" autocomplete="off"></label>
+        <label class="form-row"><span class="fr-label">刊期</span><input id="j-issue" placeholder="遠見 12 月號、線上 11/20"></label>
       </div>
-      <div class="crew-editor">
-        <div class="ce-title">
-          <h4>採訪團隊</h4>
-          <span class="hint">先選角色再選人，會自動帶入預設稿費與交稿日（採訪後：記者 7 天、攝影 3 天、美編 10 天）</span>
-        </div>
-        <div id="crew-rows"></div>
-        <button type="button" class="add-btn" data-icon="plus" data-label="加一位" onclick="addCrewRow()"></button>
+      <div class="form-group">
+        <label class="form-row"><span class="fr-label">主題</span><input id="j-topic" placeholder="永續金融 CEO 專訪"></label>
+        <label class="form-row"><span class="fr-label">受訪者</span><input id="j-interviewee" placeholder="姓名＋職稱"></label>
+        <label class="form-row"><span class="fr-label">地點</span><input id="j-location" placeholder="客戶總部 18F"></label>
       </div>
-      <label class="field full"><span>備註</span><textarea id="j-note" rows="2" placeholder="聯絡窗口、注意事項…"></textarea></label>
-    </div>
-    <div class="modal-foot">
-      <button class="text-btn danger" id="j-delete" onclick="deleteJob()">刪除</button>
-      <span class="spacer"></span>
-      <button class="text-btn" onclick="closeModal('job-modal')">取消</button>
-      <button class="primary-btn" onclick="saveJob()">儲存</button>
+      <div class="group-caption">採訪時間</div>
+      <div class="form-group">
+        <label class="form-row"><span class="fr-label">日期</span><input id="j-date" class="pill-input" type="date" onchange="onInterviewDateChange()"></label>
+        <label class="form-row"><span class="fr-label">時間</span><input id="j-time" class="pill-input" type="time"></label>
+      </div>
+      <div id="crew-rows"></div>
+      <div class="form-group"><button type="button" class="form-row action" data-icon="circle-plus" onclick="addCrewRow()">加一位成員</button></div>
+      <div class="group-foot">先選角色再選人，會自動帶入預設稿費與交稿日（採訪後：記者 7 天、攝影 3 天、美編 10 天）。</div>
+      <div class="group-caption">備註</div>
+      <div class="form-group"><div class="form-row"><textarea id="j-note" placeholder="聯絡窗口、注意事項…"></textarea></div></div>
+      <div class="form-group" id="j-extra"><button type="button" class="form-row action" data-icon="calendar-plus" onclick="exportJobICS(editingJobId)">加入行事曆</button></div>
+      <div class="form-group" id="j-delete"><button type="button" class="form-row action danger" onclick="deleteJob()">刪除案子</button></div>
     </div>
   </div>
 </div>
 
 <!-- 人員表單 -->
-<div class="modal stack" id="person-modal" hidden>
-  <div class="modal-backdrop" onclick="closeModal('person-modal')"></div>
-  <div class="modal-card narrow" role="dialog" aria-modal="true" aria-labelledby="person-modal-title">
-    <div class="modal-head">
-      <h3 id="person-modal-title">新增人員</h3>
-      <button class="modal-close" data-icon="x" onclick="closeModal('person-modal')" aria-label="關閉"></button>
+<div class="sheet stack" id="person-sheet" hidden>
+  <div class="sheet-backdrop" onclick="closeSheet('person-sheet')"></div>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="person-sheet-title">
+    <div class="sheet-nav">
+      <button class="nav-text" onclick="closeSheet('person-sheet')">取消</button>
+      <div class="sheet-title" id="person-sheet-title">新增人員</div>
+      <button class="nav-text strong" onclick="savePerson()">儲存</button>
     </div>
-    <div class="modal-body">
-      <div class="form-grid">
-        <label class="field"><span>姓名</span><input id="p-name" autocomplete="off"></label>
-        <label class="field"><span>角色</span><select id="p-role"></select></label>
-        <label class="field"><span>電話</span><input id="p-phone" type="tel" autocomplete="off"></label>
-        <label class="field"><span>預設稿費</span><input id="p-fee" type="number" inputmode="numeric" min="0" step="100" placeholder="選填"></label>
-        <label class="field full"><span>Email</span><input id="p-email" type="email" autocomplete="off"></label>
-        <label class="field full"><span>LINE ID</span><input id="p-line" autocomplete="off"></label>
-        <label class="field full"><span>備註</span><textarea id="p-note" rows="2" placeholder="擅長題材、合作習慣…"></textarea></label>
+    <div class="sheet-body">
+      <div class="form-group">
+        <label class="form-row"><span class="fr-label">姓名</span><input id="p-name" placeholder="必填" autocomplete="off"></label>
+        <div class="form-row seg-row"><div class="seg" id="p-role-seg" role="radiogroup" aria-label="角色"></div></div>
       </div>
+      <div class="form-group">
+        <label class="form-row"><span class="fr-label">電話</span><input id="p-phone" type="tel" placeholder="0912-345-678" autocomplete="off"></label>
+        <label class="form-row"><span class="fr-label">Email</span><input id="p-email" type="email" placeholder="name@example.com" autocomplete="off"></label>
+        <label class="form-row"><span class="fr-label">LINE</span><input id="p-line" placeholder="LINE ID" autocomplete="off"></label>
+      </div>
+      <div class="form-group">
+        <label class="form-row"><span class="fr-label">預設稿費</span><span class="money">NT$</span><input id="p-fee" type="number" inputmode="numeric" min="0" step="100" placeholder="選填"></label>
+      </div>
+      <div class="group-caption">備註</div>
+      <div class="form-group"><div class="form-row"><textarea id="p-note" placeholder="擅長題材、合作習慣…"></textarea></div></div>
+      <div id="p-stats-wrap"><div class="group-caption">合作紀錄</div><div class="form-group" id="p-stats"></div></div>
+      <div class="form-group" id="p-delete"><button type="button" class="form-row action danger" onclick="deletePerson()">刪除人員</button></div>
     </div>
-    <div class="modal-foot">
-      <button class="text-btn danger" id="p-delete" onclick="deletePerson()">刪除</button>
-      <span class="spacer"></span>
-      <button class="text-btn" onclick="closeModal('person-modal')">取消</button>
-      <button class="primary-btn" onclick="savePerson()">儲存</button>
+  </div>
+</div>
+
+<!-- 動作表 -->
+<div class="asheet" id="actions" hidden>
+  <div class="sheet-backdrop" onclick="closeActions()"></div>
+  <div class="as-panel" role="dialog" aria-modal="true" aria-label="更多動作">
+    <div class="as-group">
+      <div class="as-title">廣編採訪排程</div>
+      <button class="as-btn" onclick="closeActions(exportAllICS)">匯出未來行程到行事曆</button>
+      <button class="as-btn" onclick="closeActions(exportBackup)">下載備份（JSON）</button>
     </div>
+    <button class="as-cancel" onclick="closeActions()">取消</button>
   </div>
 </div>
 
@@ -493,45 +453,48 @@ const FIREBASE = {
   appId:             '1:761622662336:web:71f581dbaddf56b9287125'
 };
 const GROUPS = [
-  { key: 'overdue', label: '逾期',     hint: '交稿日已過、還沒交稿' },
+  { key: 'overdue', label: '逾期' },
   { key: 'today',   label: '今天' },
   { key: 'soon',    label: '三天內' },
   { key: 'week',    label: '七天內' },
   { key: 'later',   label: '之後' },
-  { key: 'nodate',  label: '待排日期', hint: '缺採訪日或交稿日' },
-  { key: 'done',    label: '已完成',   collapsible: true }
+  { key: 'nodate',  label: '待排日期' },
+  { key: 'done',    label: '已完成', collapsible: true }
 ];
-// Lucide 圖示（lucide-static，ISC 授權）內嵌，跟旅遊工具同一套
+const TAB_TITLES = { schedule: '排程', people: '人員', fees: '稿費' };
+// Lucide 圖示（lucide-static，ISC 授權）內嵌
 const ICONS = {
+  'calendar-days': '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/>',
   'calendar-plus': '<path d="M8 2v4"/><path d="M16 2v4"/><path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="M3 10h18"/><path d="M16 19h6"/><path d="M19 16v6"/>',
   'check': '<path d="M20 6 9 17l-5-5"/>',
   'chevron-right': '<path d="m9 18 6-6-6-6"/>',
-  'download': '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+  'circle': '<circle cx="12" cy="12" r="10"/>',
+  'circle-check': '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  'circle-ellipsis': '<circle cx="12" cy="12" r="10"/><path d="M17 12h.01"/><path d="M12 12h.01"/><path d="M7 12h.01"/>',
+  'circle-plus': '<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/>',
+  'delete': '<path d="M10 5a2 2 0 0 0-1.344.519l-6.328 5.74a1 1 0 0 0 0 1.481l6.328 5.741A2 2 0 0 0 10 19h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><path d="m12 9 6 6"/><path d="m18 9-6 6"/>',
+  'file-text': '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
   'info': '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
-  'mail': '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
   'map-pin': '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
-  'message-circle': '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
   'mic': '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>',
-  'pencil': '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
-  'phone': '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
   'plus': '<path d="M5 12h14"/><path d="M12 5v14"/>',
   'search': '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
   'sticky-note': '<path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"/><path d="M15 3v4a2 2 0 0 0 2 2h4"/>',
   'triangle-alert': '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
   'users': '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
-  'wallet': '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
-  'x': '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
+  'wallet': '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>'
 };
 function icon(name, cls = '') {
-  return `<svg class="ico ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+  return `<svg class="ico ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
 }
+const CHEV = icon('chevron-right', 'chev');
 const C = window.CrewCore;
 const DEMO = new URLSearchParams(location.search).has('demo');
 
 // ── 狀態 ──────────────────────────────────────────────────────
 let jobs = {}, people = {}, contactClients = [];
-const ui = { tab: 'schedule', q: '', role: '全部', showDone: false, loaded: false };
-let editingJobId = null, editingPersonId = null, draftCrew = [], personCallback = null;
+const ui = { tab: 'schedule', q: '', role: '全部', showDone: false, loaded: false, sync: 'connecting', openMonths: new Set() };
+let editingJobId = null, editingPersonId = null, draftCrew = [], personCallback = null, personRole = '記者';
 let lastToday = C.todayTW();
 
 // ── 小工具 ────────────────────────────────────────────────────
@@ -545,8 +508,9 @@ function roleClass(r) { return CONFIG.ROLES.includes(r) ? `r-${r}` : ''; }
 function longDate(s) {
   if (!C.isDate(s)) return '';
   const [, m, d] = s.split('-').map(Number);
-  return `${m} 月 ${d} 日　週${C.weekday(s)}`;
+  return `${m} 月 ${d} 日 週${C.weekday(s)}`;
 }
+function shortDate(s) { const [, m, d] = s.split('-').map(Number); return `${m}/${d}`; }
 function personName(c) { return (c.personId && people[c.personId] && people[c.personId].name) || c.name || '（未指定）'; }
 // 人員改名後，案子裡顯示最新名字
 function entries() {
@@ -555,12 +519,11 @@ function entries() {
     crew: C.crewOf(j).map(c => ({ ...c, name: personName(c), role: c.role || roleOf(people[c.personId]) }))
   }]);
 }
-// 可勾選的膠囊（卡片與表單共用）
-function toggleChip({ kind, label, on, cls = '', onchange = '' }) {
-  return `<label class="tg tg-${kind}"><input type="checkbox" class="${cls}"${on ? ' checked' : ''}${onchange ? ` onchange="${onchange}"` : ''}><span class="box">${icon('check')}</span>${label}</label>`;
+function switchHtml(cls, on, label) {
+  return `<span class="switch"><input type="checkbox" role="switch" class="${cls}" aria-label="${label}"${on ? ' checked' : ''}><span class="track"></span></span>`;
 }
 let toastTimer = null;
-function toast(msg, ms = 2400) {
+function toast(msg, ms = 2200) {
   const el = $('toast');
   el.textContent = msg;
   el.classList.add('show');
@@ -580,42 +543,75 @@ function download(name, text, type) {
 }
 function safeName(s) { return String(s || '').replace(/[\\/:*?"<>|\s]+/g, '_').slice(0, 40); }
 
-// 開視窗時鎖住背景（iOS 要用 position:fixed 才擋得住）
+// ── 背景鎖定與覆蓋層（iOS 要用 position:fixed 才擋得住背景捲動） ──
 let lockedY = 0;
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function lockScroll() {
-  if (document.body.classList.contains('modal-open')) return;
+  if (document.body.classList.contains('locked')) return;
   lockedY = window.scrollY;
   document.body.style.top = `-${lockedY}px`;
-  document.body.classList.add('modal-open');
+  document.body.classList.add('locked');
 }
 function unlockScroll() {
-  if (!document.body.classList.contains('modal-open')) return;
-  document.body.classList.remove('modal-open');
+  if (!document.body.classList.contains('locked')) return;
+  document.body.classList.remove('locked');
   document.body.style.top = '';
   window.scrollTo(0, lockedY);
 }
+function anyOverlay() {
+  return !$('pin-screen').hidden || ['job-sheet', 'person-sheet', 'actions'].some(id => !$(id).hidden);
+}
+function showOverlay(id) {
+  const el = $(id);
+  lockScroll();
+  el.hidden = false;
+  el.getBoundingClientRect(); // 先排版，滑入動畫才會播
+  el.classList.add('show');
+}
+function hideOverlay(id, after) {
+  const el = $(id);
+  if (el.hidden) { if (after) after(); return; }
+  el.classList.remove('show');
+  setTimeout(() => {
+    el.hidden = true;
+    if (!anyOverlay()) unlockScroll();
+    if (after) after();
+  }, REDUCED ? 0 : 330);
+}
 
-// ── PIN ───────────────────────────────────────────────────────
+// ── 鎖定畫面 ──────────────────────────────────────────────────
+let pinBuf = '';
 function initPin() {
+  $('keypad').innerHTML = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map(k =>
+    k === '' ? '<span class="key blank"></span>'
+      : k === 'del' ? `<button class="key del" onclick="pinDel()" aria-label="刪除">${icon('delete')}</button>`
+      : `<button class="key" onclick="pinPress('${k}')">${k}</button>`).join('');
   let ok = false;
   try { ok = sessionStorage.getItem('ic_unlocked') === '1'; } catch (e) {}
   if (ok) { $('pin-screen').hidden = true; return; }
   lockScroll();
-  setTimeout(() => $('pin-input').focus(), 80);
 }
-function checkPin(e) {
-  if (e) e.preventDefault();
-  if ($('pin-input').value === CONFIG.PIN) {
+function renderDots() { document.querySelectorAll('#pin-dots i').forEach((d, i) => d.classList.toggle('on', i < pinBuf.length)); }
+function pinPress(k) {
+  if (pinBuf.length >= CONFIG.PIN.length) return;
+  pinBuf += k; $('pin-err').textContent = ''; renderDots();
+  if (pinBuf.length === CONFIG.PIN.length) setTimeout(checkPin, 120);
+}
+function pinDel() { pinBuf = pinBuf.slice(0, -1); renderDots(); }
+function checkPin() {
+  if (pinBuf === CONFIG.PIN) {
     try { sessionStorage.setItem('ic_unlocked', '1'); } catch (err) {}
     $('pin-screen').hidden = true;
+    pinBuf = '';
     unlockScroll();
   } else {
-    $('pin-err').textContent = '密碼錯誤，請再試一次';
-    $('pin-input').value = '';
-    $('pin-input').focus();
+    const dots = $('pin-dots');
+    dots.classList.remove('shake'); dots.getBoundingClientRect(); dots.classList.add('shake');
+    $('pin-err').textContent = '密碼錯誤';
+    if (navigator.vibrate && navigator.userActivation && navigator.userActivation.hasBeenActive) navigator.vibrate(80);
+    setTimeout(() => { pinBuf = ''; renderDots(); }, 380);
   }
 }
-$('pin-input').addEventListener('input', e => { if (e.target.value.length === CONFIG.PIN.length) checkPin(); });
 
 // ── 資料層（Firebase／示範模式同一組介面）────────────────────────
 function firebaseStore() {
@@ -688,81 +684,92 @@ function demoSeed() {
 const store = DEMO ? demoStore() : firebaseStore();
 
 function setSync(status, err) {
-  const dot = $('sync-dot');
-  dot.className = 'sync-dot ' + status;
-  dot.title = { ok: '已同步', offline: '離線中，恢復連線後會自動同步', error: '同步失敗' }[status] || '連線中';
+  ui.sync = status;
   const banner = $('sync-banner');
   if (status === 'error') {
     const denied = err && /permission/i.test(String(err.code || err.message));
-    banner.innerHTML = icon('triangle-alert') + '<div>' + (denied
-      ? `Firebase 還沒開放 <code>${CONFIG.PATH}</code> 節點的讀寫權限，資料無法讀取與儲存。請到 Firebase Console → Realtime Database → 規則，加上 <code>"${CONFIG.PATH}": { ".read": true, ".write": true }</code> 後發布。`
+    banner.innerHTML = `<span class="tile t-red">${icon('triangle-alert')}</span><div>` + (denied
+      ? `Firebase 還沒開放 <code>${CONFIG.PATH}</code> 節點的讀寫權限，資料無法讀取與儲存。請到 Firebase Console 的規則加上 <code>"${CONFIG.PATH}": { ".read": true, ".write": true }</code> 後發布。`
       : '無法連上 Firebase，資料暫時無法同步。') + '</div>';
     banner.hidden = false;
   } else if (status === 'ok') {
     banner.hidden = true;
   }
+  renderSub();
+}
+function renderSub() {
+  const st = { ok: '已同步', offline: '<span class="st-offline">離線中</span>', error: '<span class="st-error">同步失敗</span>' }[ui.sync] || '連線中…';
+  const left = ui.tab === 'people' ? `${Object.keys(people).length} 位` : longDate(today());
+  $('lt-sub').innerHTML = `${esc(left)} · ${st}`;
 }
 
 // ── 分頁 ──────────────────────────────────────────────────────
 function setTab(tab) {
+  const changed = ui.tab !== tab;
   ui.tab = tab;
-  document.querySelectorAll('.topnav .tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-item').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   ['schedule', 'people', 'fees'].forEach(k => { $(`tab-${k}`).hidden = k !== tab; });
-  $('btn-add').innerHTML = icon('plus') + (tab === 'people' ? '新增人員' : '新案子');
+  $('large-title').textContent = $('nav-title').textContent = TAB_TITLES[tab];
   if (location.hash.slice(1) !== tab) history.replaceState(null, '', tab === 'schedule' ? location.pathname + location.search : `#${tab}`);
+  if (changed) window.scrollTo(0, 0);
   render();
 }
-function primaryAdd() { ui.tab === 'people' ? openPerson() : openJob(); }
+function primaryAdd() { ui.tab === 'people' ? openPerson(null, ui.role === '全部' ? '記者' : ui.role) : openJob(); }
 
 function render() {
   const t = today();
-  const active = Object.values(jobs).filter(j => C.jobStatus(j, t).group !== 'done').length;
-  $('cnt-schedule').textContent = active || '';
-  $('cnt-people').textContent = Object.keys(people).length || '';
+  const urgent = C.reminderItems(entries(), t).filter(i => i.level === 'overdue' || i.level === 'today').length;
+  const badgeHost = document.querySelector('.tab-item[data-tab="schedule"] .ti-icon');
+  let badge = badgeHost.querySelector('.badge');
+  if (urgent) {
+    if (!badge) { badge = document.createElement('span'); badge.className = 'badge'; badgeHost.appendChild(badge); }
+    badge.textContent = urgent;
+  } else if (badge) badge.remove();
+  renderSub();
   if (ui.tab === 'schedule') renderSchedule();
   else if (ui.tab === 'people') renderPeople();
   else renderFees();
 }
 
 // ── 排程 ──────────────────────────────────────────────────────
-function chipFor(date, done, kind) {
-  const cls = kind === 'due' ? ' cd' : '';
-  if (done) return `<span class="micro lv-done${cls}">${icon('check')}已交稿</span>`;
-  if (!C.isDate(date)) return `<span class="micro lv-none${cls}">${kind === 'interview' ? '未排日期' : '未填交稿日'}</span>`;
+function countdown(date) {
   const d = C.diffDays(today(), date);
-  if (kind === 'interview') {
-    if (d < 0) return '<span class="micro">已採訪</span>';
-    if (d === 0) return '<span class="micro lv-today">今天採訪</span>';
-    if (d === 1) return '<span class="micro lv-soon">明天採訪</span>';
-    return `<span class="micro lv-${C.level(d)}">${d} 天後採訪</span>`;
-  }
-  if (d < 0) return `<span class="micro lv-overdue${cls}">逾期 ${-d} 天</span>`;
-  if (d === 0) return `<span class="micro lv-today${cls}">今天交稿</span>`;
-  if (d === 1) return `<span class="micro lv-soon${cls}">明天交稿</span>`;
-  return `<span class="micro lv-${C.level(d)}${cls}">${d} 天後</span>`;
+  if (d < 0) return { cls: 'lv-overdue', text: `逾期 ${-d} 天` };
+  if (d === 0) return { cls: 'lv-today', text: '今天' };
+  if (d === 1) return { cls: 'lv-soon', text: '明天' };
+  return { cls: d <= 7 ? 'lv-week' : '', text: `${d} 天後` };
+}
+function interviewStatus(date) {
+  const d = C.diffDays(today(), date);
+  if (d < 0) return { cls: '', text: '已採訪' };
+  if (d === 0) return { cls: 'lv-today', text: '今天採訪' };
+  if (d === 1) return { cls: 'lv-soon', text: '明天採訪' };
+  return { cls: d <= 7 ? 'lv-week' : '', text: `${d} 天後採訪` };
 }
 
 function renderToday(list) {
-  const t = today();
-  const items = C.reminderItems(list, t);
-  const rows = items.length
-    ? `<div class="today-rows">${items.map(it => {
-        const what = [it.client, it.topic].filter(Boolean).join('｜');
-        let main, sub;
-        if (it.kind === 'interview') {
-          const crew = it.crew.map(c => `${c.role} ${c.name}`).join('、');
-          main = `${it.time ? `${esc(it.time)}　` : ''}${esc(what)}`;
-          sub = [it.location, it.interviewee, crew].filter(Boolean).map(esc).join(' · ');
-        } else {
-          main = `${esc(it.name)}（${esc(it.role || '人員')}）交稿`;
-          sub = `${esc(C.fmtDate(it.date))} · ${esc(what)}`;
-        }
-        return `<button class="today-row" onclick="focusJob('${esc(it.jobId)}')">
-          <span class="micro lv-${it.level}">${esc(it.label)}</span>
-          <span><b>${main}</b>${sub ? `<small>${sub}</small>` : ''}</span>${icon('chevron-right')}</button>`;
-      }).join('')}</div>`
-    : '<div class="today-empty">今天沒有要追的採訪或交稿。</div>';
-  $('today-panel').innerHTML = `<div class="today-head"><span class="today-eyebrow">今日提醒</span><span class="today-date">${esc(longDate(t))}</span></div>${rows}`;
+  const items = C.reminderItems(list, today());
+  const TILE = {
+    interview: { today: ['t-orange', 'mic'], soon: ['t-blue', 'mic'] },
+    due: { overdue: ['t-red', 'file-text'], today: ['t-orange', 'file-text'], soon: ['t-indigo', 'file-text'] }
+  };
+  const rows = items.length ? items.map(it => {
+    const what = [it.client, it.topic].filter(Boolean).join('｜');
+    const [tc, ic] = (TILE[it.kind] || {})[it.level] || ['t-gray', 'info'];
+    // 狀態放在副標題開頭（像提醒事項），標題才不會被擠到斷行
+    let title, sub;
+    if (it.kind === 'interview') {
+      title = esc(what);
+      sub = [it.time, it.location, it.interviewee, it.crew.map(c => `${c.role} ${c.name}`).join('、')].filter(Boolean).map(esc).join(' · ');
+    } else {
+      title = `${esc(it.name)}（${esc(it.role || '人員')}）交稿`;
+      sub = `${esc(C.fmtDate(it.date))} · ${esc(what)}`;
+    }
+    return `<button class="cell" style="--sep-left:58px" onclick="focusJob('${esc(it.jobId)}')">
+      <span class="tile ${tc}">${icon(ic)}</span>
+      <span class="cell-main"><span class="cell-title">${title}</span><span class="cell-sub"><span class="lv-${it.level}">${esc(it.label)}</span>${sub ? ` · ${sub}` : ''}</span></span>${CHEV}</button>`;
+  }).join('') : `<div class="cell"><span class="tile t-green">${icon('check')}</span><span class="cell-main"><span class="cell-title">今天沒有要追的事</span><span class="cell-sub">沒有逾期，也沒有今明兩天的採訪與交稿</span></span></div>`;
+  $('today-panel').innerHTML = `<div class="big-head"><h2>今日提醒</h2>${items.length ? `<span class="n">${items.length}</span>` : ''}</div><div class="list">${rows}</div>`;
 }
 
 function matches(job, q) {
@@ -773,53 +780,49 @@ function matches(job, q) {
 }
 
 function jobCard(id, job, st) {
-  const crew = job.crew;
   const hasDate = C.isDate(job.interviewDate);
   const [, mm, dd] = hasDate ? job.interviewDate.split('-').map(Number) : [];
-  const datebox = hasDate
-    ? `<div class="datebox"><div class="md">${mm}/${dd}</div><div class="wd">週${C.weekday(job.interviewDate)}</div>${job.interviewTime ? `<div class="tm">${esc(job.interviewTime)}</div>` : ''}</div>`
-    : '<div class="datebox none"><div class="md">—</div><div class="wd">未排</div></div>';
-  const kicker = [job.client, job.issue].filter(Boolean).map(esc).join('<span class="sep">／</span>');
+  const cal = hasDate
+    ? `<span class="cal"><span class="cal-m">${mm} 月</span><span class="cal-d">${dd}</span></span>`
+    : '<span class="cal none"><span class="cal-m">未排</span><span class="cal-d">—</span></span>';
+  const sub = [job.client, job.issue].filter(Boolean).map(esc).join(' · ');
+  let when = '';
+  if (hasDate) {
+    const s = interviewStatus(job.interviewDate);
+    when = `<span class="${s.cls}">週${C.weekday(job.interviewDate)}${job.interviewTime ? ` ${esc(job.interviewTime)}` : ''} · ${s.text}</span>`;
+  }
   const meta = [
-    hasDate ? chipFor(job.interviewDate, false, 'interview') : '',
+    when,
     job.interviewee ? `<span>${icon('mic')}${esc(job.interviewee)}</span>` : '',
     job.location ? `<span>${icon('map-pin')}${esc(job.location)}</span>` : ''
   ].join('');
-  const rows = crew.length
-    ? `<ul class="crew">${crew.map((c, i) => `
-        <li class="crew-row${c.delivered ? ' is-done' : ''}">
-          <span class="micro role ${roleClass(c.role)}">${esc(c.role || '人員')}</span>
-          <span class="name">${esc(c.name)}</span>
-          <span class="fee">${c.fee ? money(c.fee) : '—'}</span>
-          <span class="due">${c.dueDate ? `交稿 ${esc(C.fmtDate(c.dueDate))}` : '交稿日未定'}</span>
-          ${chipFor(c.dueDate, c.delivered, 'due')}
-          ${toggleChip({ kind: 'req', label: '已申請', on: c.feeRequested, onchange: `toggleCrew('${esc(id)}', ${i}, 'feeRequested', this.checked)` })}
-          ${toggleChip({ kind: 'done', label: '已交稿', on: c.delivered, onchange: `toggleCrew('${esc(id)}', ${i}, 'delivered', this.checked)` })}
-        </li>`).join('')}</ul>`
-    : '<div class="crew-empty">還沒指派記者、攝影或美編</div>';
-  return `<article class="job lv-${st.group}" id="job-${esc(id)}">
-    <div class="job-head">
-      ${datebox}
-      <div class="job-main">
-        ${kicker ? `<div class="job-kicker">${kicker}</div>` : ''}
-        <h3 class="job-topic">${esc(job.topic || '（未填主題）')}</h3>
-        ${meta ? `<div class="job-meta">${meta}</div>` : ''}
-      </div>
-      <div class="job-tools">
-        <button class="icon-btn" onclick="exportJobICS('${esc(id)}')" title="加到行事曆" aria-label="加到行事曆">${icon('calendar-plus')}</button>
-        <button class="icon-btn" onclick="openJob('${esc(id)}')" title="編輯" aria-label="編輯">${icon('pencil')}</button>
-      </div>
-    </div>
-    ${rows}
-    ${job.note ? `<div class="job-note">${icon('sticky-note')}<span>${esc(job.note)}</span></div>` : ''}
-  </article>`;
+  const crew = job.crew.length ? job.crew.map((c, i) => {
+    let due;
+    if (c.delivered) due = '<span class="due-text lv-done">已交稿</span>';
+    else if (!C.isDate(c.dueDate)) due = '<span class="due-text lv-none">未填交稿日</span>';
+    else { const cd = countdown(c.dueDate); due = `<span class="due-text">交稿 ${shortDate(c.dueDate)} · <span class="${cd.cls} nowrap">${cd.text}</span></span>`; }
+    return `<div class="cell crew-cell">
+      <label class="ring" title="已交稿"><input type="checkbox" aria-label="${esc(c.name)} 已交稿"${c.delivered ? ' checked' : ''} onchange="toggleCrew('${esc(id)}', ${i}, 'delivered', this.checked)"><span></span></label>
+      <span class="cell-main">
+        <span class="crew-line"><span class="role-tag ${roleClass(c.role)}">${esc(c.role || '人員')}</span><span class="crew-name">${esc(c.name)}</span><span class="crew-fee">${c.fee ? money(c.fee) : '—'}</span></span>
+        <span class="crew-line2">${due}<label class="capsule"><input type="checkbox" aria-label="${esc(c.name)} 已申請"${c.feeRequested ? ' checked' : ''} onchange="toggleCrew('${esc(id)}', ${i}, 'feeRequested', this.checked)">${icon('circle', 'off')}${icon('circle-check', 'on')}已申請</label></span>
+      </span>
+    </div>`;
+  }).join('') : '<div class="cell muted-cell">還沒指派記者、攝影或美編</div>';
+  return `<div class="list job lv-${st.group}" id="job-${esc(id)}">
+    <button class="cell job-head" onclick="openJob('${esc(id)}')">${cal}
+      <span class="cell-main"><span class="job-title">${esc(job.topic || '（未填主題）')}</span>${sub ? `<span class="cell-sub">${sub}</span>` : ''}${meta ? `<span class="job-meta">${meta}</span>` : ''}</span>${CHEV}</button>
+    ${crew}
+    ${job.note ? `<div class="cell note-cell">${icon('sticky-note')}<span>${esc(job.note)}</span></div>` : ''}
+  </div>`;
 }
 
 function renderSchedule() {
   const list = entries();
-  renderToday(list);
-  const t = today();
   const q = ui.q.trim().toLowerCase();
+  $('today-panel').hidden = !!q;
+  if (!q) renderToday(list);
+  const t = today();
   const buckets = {};
   list.filter(([, j]) => matches(j, q)).forEach(([id, job]) => {
     const st = C.jobStatus(job, t);
@@ -831,40 +834,37 @@ function renderSchedule() {
 
   if (!list.length) {
     $('groups').innerHTML = ui.loaded
-      ? `<div class="empty">${icon('calendar-plus')}<h3>還沒有案子</h3>
-          <p>人員名冊建好之後，按「新案子」排第一個廣編採訪。</p>
-          <button class="primary-btn" onclick="openJob()">${icon('plus')}新案子</button></div>`
-      : '<div class="empty">載入中…</div>';
+      ? `<div class="empty">${icon('calendar-days')}<h3>還沒有案子</h3><p>人員名冊建好之後，<br>排第一個廣編採訪吧。</p><button class="fill-btn" onclick="openJob()">新增案子</button></div>`
+      : '<div class="empty"><p>載入中…</p></div>';
     return;
   }
   const html = GROUPS.map(g => {
     const arr = buckets[g.key];
     if (!arr || !arr.length) return '';
     const open = !g.collapsible || ui.showDone || q;
-    const title = `<h2><span class="dot"></span>${g.label}</h2><span class="n">${arr.length}</span>`;
-    const head = g.collapsible
-      ? `<div class="group-head toggle g-${g.key}${open ? ' open' : ''}" role="button" tabindex="0" aria-expanded="${open ? 'true' : 'false'}" onclick="toggleDone()" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleDone(); }">${title}${icon('chevron-right')}</div>`
-      : `<div class="group-head g-${g.key}">${title}${g.hint ? `<span class="hint">${g.hint}</span>` : ''}</div>`;
-    return `<section class="group">${head}${open ? `<div class="group-list">${arr.map(r => jobCard(r.id, r.job, r.st)).join('')}</div>` : ''}</section>`;
+    return `<section class="group">
+      <div class="big-head${g.key === 'overdue' ? ' red' : ''}"><h2>${g.label}</h2><span class="n">${arr.length}</span>${g.collapsible && !q ? `<button class="head-link" onclick="toggleDone()">${open ? '隱藏' : '顯示'}</button>` : ''}</div>
+      ${open ? arr.map(r => jobCard(r.id, r.job, r.st)).join('') : ''}
+    </section>`;
   }).join('');
-  $('groups').innerHTML = html || `<div class="empty">${icon('search')}<h3>找不到符合的案子</h3><p>換個關鍵字試試：「${esc(ui.q)}」</p></div>`;
+  $('groups').innerHTML = html || `<div class="empty">${icon('search')}<h3>沒有符合的結果</h3><p>找不到「${esc(ui.q)}」，換個關鍵字試試。</p></div>`;
 }
-
 function toggleDone() { ui.showDone = !ui.showDone; renderSchedule(); }
 
 function focusJob(id) {
   const st = jobs[id] && C.jobStatus(jobs[id], today());
+  if (ui.tab !== 'schedule') setTab('schedule');
   if (st && st.group === 'done' && !ui.showDone) { ui.showDone = true; renderSchedule(); }
   const el = $(`job-${id}`);
   if (!el) return;
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' });
   el.classList.add('flash');
-  setTimeout(() => el.classList.remove('flash'), 1600);
+  setTimeout(() => el.classList.remove('flash'), 1400);
 }
 
 const CREW_FLAGS = {
   delivered:    ['已標記交稿', '已取消交稿標記'],
-  feeRequested: ['已標記申請稿費', '已取消申請稿費標記']
+  feeRequested: ['已標記已申請', '已取消申請標記']
 };
 function toggleCrew(id, i, field, val) {
   if (!CREW_FLAGS[field]) return;
@@ -896,40 +896,25 @@ function personStats() {
 }
 
 function renderPeople() {
-  const counts = {};
-  Object.values(people).forEach(p => { counts[roleOf(p)] = (counts[roleOf(p)] || 0) + 1; });
   $('role-filters').innerHTML = ['全部', ...CONFIG.ROLES].map(r =>
-    `<button class="tab${ui.role === r ? ' active' : ''}" onclick="ui.role = '${r}'; renderPeople()">${r}<span class="count">${r === '全部' ? Object.keys(people).length || '' : counts[r] || ''}</span></button>`).join('');
+    `<button role="radio" aria-checked="${ui.role === r}" onclick="ui.role = '${r}'; renderPeople()">${r}</button>`).join('');
   const stats = personStats();
-  const list = Object.entries(people)
-    .filter(([, p]) => ui.role === '全部' || roleOf(p) === ui.role)
-    .sort((a, b) => CONFIG.ROLES.indexOf(roleOf(a[1])) - CONFIG.ROLES.indexOf(roleOf(b[1])) || (a[1].name || '').localeCompare(b[1].name || '', 'zh-Hant'));
-  if (!list.length) {
-    $('people-list').innerHTML = `<div class="empty" style="width:100%">${icon('users')}<h3>${Object.keys(people).length ? '這個分類還沒有人' : '名冊是空的'}</h3>
-      <p>把常合作的記者、攝影、美編加進來，排案子時就能直接選。</p>
-      <button class="primary-btn" onclick="openPerson(null, '${ui.role === '全部' ? '記者' : ui.role}')">${icon('plus')}新增人員</button></div>`;
-    return;
-  }
-  $('people-list').innerHTML = list.map(([id, p]) => {
-    const st = stats[id] || { count: 0, total: 0, next: null };
-    const contact = [
-      p.phone ? `<span>${icon('phone')}<a href="tel:${esc(p.phone.replace(/[^\d+]/g, ''))}">${esc(p.phone)}</a></span>` : '',
-      p.email ? `<span>${icon('mail')}<a href="mailto:${esc(p.email)}">${esc(p.email)}</a></span>` : '',
-      p.line ? `<span>${icon('message-circle')}${esc(p.line)}</span>` : '',
-      p.defaultFee ? `<span>${icon('wallet')}預設 ${money(p.defaultFee)}</span>` : ''
-    ].join('');
-    const next = st.next
-      ? `<div class="p-next">下一個：${esc(C.fmtDate(st.next.date))} ${esc(st.next.label)}｜${esc([st.next.job.client, st.next.job.topic].filter(Boolean).join(' '))}</div>`
-      : '';
-    return `<div class="person">
-      <div class="p-head"><span class="micro role ${roleClass(roleOf(p))}">${esc(roleOf(p))}</span><span class="p-name">${esc(p.name)}</span>
-        <button class="icon-btn" onclick="openPerson('${esc(id)}')" title="編輯" aria-label="編輯 ${esc(p.name)}">${icon('pencil')}</button></div>
-      ${contact ? `<div class="p-contact">${contact}</div>` : '<div class="p-empty">還沒填聯絡方式</div>'}
-      ${next}
-      ${p.note ? `<div class="p-note">${esc(p.note)}</div>` : ''}
-      <div class="p-stats"><span>合作 <b>${st.count}</b> 案</span><span>累計 <b>${money(st.total)}</b></span></div>
-    </div>`;
+  const roles = ui.role === '全部' ? [...CONFIG.ROLES] : [ui.role];
+  const sections = roles.map(r => {
+    const list = Object.entries(people).filter(([, p]) => roleOf(p) === r)
+      .sort((a, b) => (a[1].name || '').localeCompare(b[1].name || '', 'zh-Hant'));
+    if (!list.length) return '';
+    return `<div class="sec-head"><span>${r}</span><span>${list.length} 位</span></div><div class="list">${list.map(([id, p]) => {
+      const st = stats[id] || { count: 0 };
+      const sub = [p.phone || p.email || p.line || '尚未填聯絡方式', st.count ? `合作 ${st.count} 案` : ''].filter(Boolean).join(' · ');
+      return `<button class="cell person-cell" onclick="openPerson('${esc(id)}')">
+        <span class="avatar">${esc((p.name || '?').slice(0, 1))}</span>
+        <span class="cell-main"><span class="cell-title">${esc(p.name)}</span><span class="cell-sub">${esc(sub)}</span></span>${CHEV}</button>`;
+    }).join('')}</div>`;
   }).join('');
+  $('people-list').innerHTML = sections || `<div class="empty">${icon('users')}<h3>${Object.keys(people).length ? `還沒有${esc(ui.role)}` : '名冊是空的'}</h3>
+    <p>把常合作的記者、攝影、美編加進來，<br>排案子時就能直接選。</p>
+    <button class="fill-btn" onclick="openPerson(null, '${ui.role === '全部' ? '記者' : ui.role}')">新增人員</button></div>`;
 }
 
 // ── 稿費 ──────────────────────────────────────────────────────
@@ -938,6 +923,7 @@ function monthLabel(key) {
   const [y, m] = key.split('-').map(Number);
   return `${y} 年 ${m} 月`;
 }
+function toggleMonth(key) { ui.openMonths.has(key) ? ui.openMonths.delete(key) : ui.openMonths.add(key); renderFees(); }
 function renderFees() {
   const months = C.monthlyFees(entries());
   const t = today(), thisMonth = t.slice(0, 7), thisYear = t.slice(0, 4);
@@ -945,42 +931,44 @@ function renderFees() {
   const yearMonths = months.filter(m => m.month.startsWith(thisYear));
   const yearTotal = yearMonths.reduce((s, m) => s + m.total, 0);
   const yearJobs = yearMonths.reduce((s, m) => s + m.jobs.length, 0);
-  $('fee-hero').innerHTML = `
-    <div><div class="kicker k">本月稿費</div><div class="amt">${money(cur ? cur.total : 0)}</div><div class="sub">${monthLabel(thisMonth)} · ${cur ? cur.jobs.length : 0} 案 · 依採訪日歸月</div></div>
-    <div class="side"><div class="kicker k">${thisYear} 年累計</div><div class="amt">${money(yearTotal)}</div><div class="sub">${yearJobs} 案</div></div>`;
+  $('fee-hero').innerHTML = `<div class="list">
+    <div class="cell"><span class="cell-main"><span class="cell-sub">本月稿費 · ${monthLabel(thisMonth)}</span><span class="big-amt">${money(cur ? cur.total : 0)}</span><span class="cell-sub" style="font-size:13px">${cur ? cur.jobs.length : 0} 案 · 依採訪日歸月</span></span></div>
+    <div class="cell"><span class="cell-main">${thisYear} 年累計</span><span class="cell-value">${money(yearTotal)}</span></div>
+    <div class="cell"><span class="cell-main">${thisYear} 年案件數</span><span class="cell-value">${yearJobs} 案</span></div>
+  </div>`;
   if (!months.length) { $('fee-months').innerHTML = `<div class="empty">${icon('wallet')}<h3>還沒有稿費紀錄</h3></div>`; return; }
-  $('fee-months').innerHTML = months.map(m => `
-    <section class="month">
-      <div class="month-head"><h3>${monthLabel(m.month)}</h3><span class="cnt">${m.jobs.length} 案</span><span class="sum">${money(m.total)}</span></div>
-      <table class="fee-table"><tbody>
-        ${m.people.map(p => `<tr>
-          <td class="role-cell"><span class="micro role ${roleClass(p.role)}">${esc(p.role || '人員')}</span></td>
-          <td>${esc(p.name)}</td><td class="c">${p.count} 件</td><td class="r">${money(p.total)}</td></tr>`).join('')}
-      </tbody></table>
-      <details><summary>${icon('chevron-right')}案件明細</summary><ul class="month-jobs">
-        ${m.jobs.map(({ job, total }) => `<li>
-          <span class="d">${job.interviewDate ? esc(C.fmtDate(job.interviewDate)) : '—'}</span>
-          <span class="t">${esc([job.client, job.topic].filter(Boolean).join('｜') || '（未命名）')}
-            <small>${job.crew.map(c => `${esc(c.role)} ${esc(c.name)} ${c.fee ? money(c.fee) : '—'}${c.feeRequested ? '（已申請）' : ''}`).join(' · ')}</small></span>
-          <span class="s">${money(total)}</span></li>`).join('')}
-      </ul></details>
-    </section>`).join('');
+  $('fee-months').innerHTML = months.map(m => {
+    const open = ui.openMonths.has(m.month);
+    return `<div class="sec-head"><span>${monthLabel(m.month)} · ${m.jobs.length} 案</span><span>${money(m.total)}</span></div>
+    <div class="list">
+      ${m.people.map(p => `<div class="cell">
+        <span class="role-tag ${roleClass(p.role)}" style="width:30px">${esc(p.role || '人員')}</span>
+        <span class="cell-main">${esc(p.name)}</span>
+        <span class="cell-value" style="font-size:15px">${p.count} 件</span><span class="amt">${money(p.total)}</span></div>`).join('')}
+      <button class="cell toggle-cell${open ? ' open' : ''}" onclick="toggleMonth('${m.month}')">案件明細${CHEV}</button>
+      ${open ? m.jobs.map(({ id, job, total }) => `<button class="cell detail-cell" onclick="focusJob('${esc(id)}')">
+        <span class="cell-main"><span class="cell-title">${job.interviewDate ? `${esc(C.fmtDate(job.interviewDate))} ` : ''}${esc([job.client, job.topic].filter(Boolean).join('｜') || '（未命名）')}</span>
+        <span class="cell-sub">${job.crew.map(c => `${esc(c.role)} ${esc(c.name)} ${c.fee ? money(c.fee) : '—'}${c.feeRequested ? '（已申請）' : ''}`).join(' · ')}</span></span>
+        <span class="amt" style="font-size:15px">${money(total)}</span></button>`).join('') : ''}
+    </div>`;
+  }).join('');
 }
 
-// ── 視窗 ──────────────────────────────────────────────────────
-function openModal(id) { lockScroll(); $(id).hidden = false; $(id).querySelector('.modal-body').scrollTop = 0; }
-function closeModal(id) {
-  $(id).hidden = true;
-  if (id === 'person-modal') personCallback = null;
-  if ($('job-modal').hidden && $('person-modal').hidden) unlockScroll();
+// ── 表單 sheet ───────────────────────────────────────────────
+function openSheet(id) { $(id).querySelector('.sheet-body').scrollTop = 0; showOverlay(id); }
+function closeSheet(id, after) {
+  if (id === 'person-sheet') personCallback = null;
+  hideOverlay(id, after);
 }
+function openActions() { showOverlay('actions'); }
+function closeActions(then) { hideOverlay('actions', typeof then === 'function' ? then : null); }
 
 // ── 案子表單 ──────────────────────────────────────────────────
 function openJob(id) {
   editingJobId = id || null;
   const j = id ? jobs[id] : {};
   if (id && !j) return toast('找不到這個案子');
-  $('job-modal-title').textContent = id ? '編輯案子' : '新案子';
+  $('job-sheet-title').textContent = id ? '編輯案子' : '新案子';
   $('j-client').value = j.client || '';
   $('j-issue').value = j.issue || '';
   $('j-topic').value = j.topic || '';
@@ -989,42 +977,42 @@ function openJob(id) {
   $('j-date').value = j.interviewDate || '';
   $('j-time').value = j.interviewTime || '';
   $('j-note').value = j.note || '';
-  $('j-delete').hidden = !id;
+  $('j-delete').hidden = $('j-extra').hidden = !id;
   draftCrew = id
     ? C.crewOf(j).map(c => ({ personId: c.personId || '', name: c.name || '', role: c.role || roleOf(people[c.personId]), fee: c.fee || '', dueDate: c.dueDate || '', delivered: !!c.delivered, feeRequested: !!c.feeRequested }))
     : [blankCrew('記者'), blankCrew('攝影')];
   renderCrewEditor();
-  openModal('job-modal');
+  openSheet('job-sheet');
 }
 function blankCrew(role) { return { personId: '', name: '', role: role || '記者', fee: '', dueDate: '', delivered: false, feeRequested: false }; }
 
-// 人員下拉只列出該角色的人
+// 人員選單只列出該角色的人
 function personOptions(role, selected, fallbackName) {
   const list = Object.entries(people)
     .filter(([, p]) => roleOf(p) === role)
     .sort((a, b) => (a[1].name || '').localeCompare(b[1].name || '', 'zh-Hant'));
-  let html = `<option value="">${list.length ? `選擇${esc(role)}…` : `名冊裡還沒有${esc(role)}`}</option>`;
+  let html = `<option value="">${list.length ? '選擇' : `還沒有${esc(role)}`}</option>`;
   html += list.map(([id, p]) => `<option value="${esc(id)}"${id === selected ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
   if (selected && !list.some(([id]) => id === selected)) {
     const p = people[selected];
     html += `<option value="${esc(selected)}" selected>${esc((p && p.name) || fallbackName || '已刪除的人員')}${p ? `（${esc(roleOf(p))}）` : '（已不在名冊）'}</option>`;
   }
-  return html + `<option value="__new__">＋ 新增${esc(role)}…</option>`;
+  return html + `<option value="__new__">新增${esc(role)}…</option>`;
 }
 
 function renderCrewEditor() {
-  $('crew-rows').innerHTML = draftCrew.length ? draftCrew.map((c, i) => `
-    <div class="ce-row" data-i="${i}">
-      <label class="ce-cell ce-c-role"><span class="ce-lbl">角色</span><select class="ce-role" onchange="onCrewRole(${i})">${CONFIG.ROLES.map(r => `<option${r === c.role ? ' selected' : ''}>${r}</option>`).join('')}</select></label>
-      <label class="ce-cell ce-c-person"><span class="ce-lbl">人員</span><select class="ce-person" onchange="onCrewPerson(${i}, this)">${personOptions(c.role, c.personId, c.name)}</select></label>
-      <label class="ce-cell ce-c-fee"><span class="ce-lbl">稿費</span><input class="ce-fee" type="number" inputmode="numeric" min="0" step="100" placeholder="NT$" value="${esc(c.fee)}"></label>
-      <label class="ce-cell ce-c-due"><span class="ce-lbl">交稿日</span><input class="ce-due" type="date" value="${esc(c.dueDate)}"></label>
-      <button type="button" class="icon-btn ce-x" onclick="removeCrewRow(${i})" title="移除" aria-label="移除這位">${icon('x')}</button>
-      <div class="ce-flags">
-        ${toggleChip({ kind: 'req', label: '已申請', on: c.feeRequested, cls: 'ce-req' })}
-        ${toggleChip({ kind: 'done', label: '已交稿', on: c.delivered, cls: 'ce-done' })}
-      </div>
-    </div>`).join('') : '<div class="ce-empty">還沒有成員，按下方「加一位」。</div>';
+  $('crew-rows').innerHTML = draftCrew.map((c, i) => `
+    <div class="group-caption">成員 ${i + 1}</div>
+    <div class="form-group ce-row" data-i="${i}">
+      <div class="form-row seg-row"><div class="seg" role="radiogroup" aria-label="角色">${CONFIG.ROLES.map(r =>
+        `<button type="button" role="radio" aria-checked="${r === c.role}" data-role="${r}" onclick="onCrewRole(${i}, '${r}')">${r}</button>`).join('')}</div></div>
+      <label class="form-row"><span class="fr-label">人員</span><select class="ce-person menu-select${c.personId ? ' has-value' : ''}" onchange="onCrewPerson(${i}, this)">${personOptions(c.role, c.personId, c.name)}</select></label>
+      <label class="form-row"><span class="fr-label">稿費</span><span class="money">NT$</span><input class="ce-fee" type="number" inputmode="numeric" min="0" step="100" placeholder="0" value="${esc(c.fee)}"></label>
+      <label class="form-row"><span class="fr-label">交稿日</span><input class="ce-due pill-input" type="date" value="${esc(c.dueDate)}"></label>
+      <label class="form-row"><span class="fr-label">已申請</span>${switchHtml('ce-req', c.feeRequested, '已申請')}</label>
+      <label class="form-row"><span class="fr-label">已交稿</span>${switchHtml('ce-done', c.delivered, '已交稿')}</label>
+      <button type="button" class="form-row action danger" onclick="removeCrewRow(${i})">移除成員</button>
+    </div>`).join('');
 }
 function readCrewFromDOM() {
   document.querySelectorAll('#crew-rows .ce-row').forEach(row => {
@@ -1032,7 +1020,8 @@ function readCrewFromDOM() {
     if (!c) return;
     const sel = row.querySelector('.ce-person').value;
     if (sel !== '__new__') c.personId = sel;
-    c.role = row.querySelector('.ce-role').value;
+    const on = row.querySelector('.seg [aria-checked="true"]');
+    if (on) c.role = on.dataset.role;
     c.fee = row.querySelector('.ce-fee').value;
     c.dueDate = row.querySelector('.ce-due').value;
     c.delivered = row.querySelector('.ce-done').checked;
@@ -1044,6 +1033,8 @@ function addCrewRow() {
   const has = r => draftCrew.some(c => c.role === r);
   draftCrew.push(blankCrew(!has('記者') ? '記者' : !has('攝影') ? '攝影' : !has('美編') ? '美編' : '記者'));
   renderCrewEditor();
+  const rows = document.querySelectorAll('#crew-rows .ce-row');
+  rows[rows.length - 1].scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' });
 }
 function removeCrewRow(i) { readCrewFromDOM(); draftCrew.splice(i, 1); renderCrewEditor(); }
 function suggestDue(role) {
@@ -1058,17 +1049,18 @@ function applyPersonDefaults(i) {
   if (!c.dueDate) c.dueDate = suggestDue(c.role);
 }
 // 換角色：原本選的人不是這個角色就清掉，自動帶入的稿費、交稿日跟著換
-function onCrewRole(i) {
-  const before = { ...draftCrew[i] };
+function onCrewRole(i, role) {
   readCrewFromDOM();
   const c = draftCrew[i];
-  if (c.role === before.role) return;
+  const before = c.role;
+  if (role === before) return;
+  c.role = role;
   const p = people[c.personId];
-  if (p && roleOf(p) !== c.role) {
+  if (p && roleOf(p) !== role) {
     if (p.defaultFee && Number(c.fee) === Number(p.defaultFee)) c.fee = '';
     c.personId = ''; c.name = '';
   }
-  if (c.dueDate && c.dueDate === suggestDue(before.role)) c.dueDate = suggestDue(c.role);
+  if (c.dueDate && c.dueDate === suggestDue(before)) c.dueDate = suggestDue(role);
   renderCrewEditor();
 }
 function onCrewPerson(i, sel) {
@@ -1103,7 +1095,7 @@ function saveJob() {
   for (let i = 0; i < draftCrew.length; i++) {
     const c = draftCrew[i];
     if (!c.personId) {
-      if (c.fee || c.dueDate || c.delivered || c.feeRequested) { toast(`第 ${i + 1} 位還沒選人員`); return; }
+      if (c.fee || c.dueDate || c.delivered || c.feeRequested) { toast(`成員 ${i + 1} 還沒選人`); return; }
       continue;
     }
     crew.push({
@@ -1129,36 +1121,47 @@ function saveJob() {
     updatedAt: Date.now()
   };
   store.save('jobs', id, obj).catch(failed);
-  closeModal('job-modal');
   toast(editingJobId ? '已更新' : '已新增案子');
-  setTimeout(() => focusJob(id), 60);
+  closeSheet('job-sheet', () => focusJob(id));
 }
 function deleteJob() {
   if (!editingJobId) return;
   const j = jobs[editingJobId] || {};
   if (!confirm(`確定刪除「${[j.client, j.topic].filter(Boolean).join(' ') || '這個案子'}」？刪除後無法復原。`)) return;
   store.remove('jobs', editingJobId).catch(failed);
-  closeModal('job-modal');
+  closeSheet('job-sheet');
   toast('已刪除');
 }
 
 // ── 人員表單 ──────────────────────────────────────────────────
+function renderPersonRole() {
+  $('p-role-seg').innerHTML = CONFIG.ROLES.map(r =>
+    `<button type="button" role="radio" aria-checked="${r === personRole}" onclick="personRole = '${r}'; renderPersonRole()">${r}</button>`).join('');
+}
 function openPerson(id, presetRole, cb) {
   editingPersonId = id || null;
   personCallback = cb || null;
   const p = id ? people[id] : {};
   if (id && !p) return toast('找不到這位人員');
-  $('person-modal-title').textContent = id ? '編輯人員' : `新增${presetRole && !id ? presetRole : '人員'}`;
-  $('p-role').innerHTML = CONFIG.ROLES.map(r => `<option${r === (p.role || presetRole || '記者') ? ' selected' : ''}>${r}</option>`).join('');
+  personRole = p.role || presetRole || '記者';
+  $('person-sheet-title').textContent = id ? '編輯人員' : `新增${presetRole || '人員'}`;
+  renderPersonRole();
   $('p-name').value = p.name || '';
   $('p-phone').value = p.phone || '';
   $('p-fee').value = p.defaultFee || '';
   $('p-email').value = p.email || '';
   $('p-line').value = p.line || '';
   $('p-note').value = p.note || '';
-  $('p-delete').hidden = !id;
-  openModal('person-modal');
-  if (window.matchMedia('(hover: hover)').matches) setTimeout(() => $('p-name').focus(), 50);
+  $('p-delete').hidden = $('p-stats-wrap').hidden = !id;
+  if (id) {
+    const st = personStats()[id] || { count: 0, total: 0, next: null };
+    const next = st.next ? `${C.fmtDate(st.next.date)} ${st.next.label}` : '—';
+    $('p-stats').innerHTML = `
+      <div class="form-row"><span>合作案數</span><span class="cell-value">${st.count} 案</span></div>
+      <div class="form-row"><span>累計稿費</span><span class="cell-value">${money(st.total)}</span></div>
+      <div class="form-row"><span>下一個行程</span><span class="cell-value" style="font-size:15px">${esc(next)}</span></div>`;
+  }
+  openSheet('person-sheet');
 }
 function savePerson() {
   const name = $('p-name').value.trim();
@@ -1166,18 +1169,18 @@ function savePerson() {
   const id = editingPersonId || store.newId('people');
   const prev = editingPersonId ? people[editingPersonId] : null;
   const obj = {
-    name, role: $('p-role').value,
+    name, role: personRole,
     phone: $('p-phone').value.trim(), email: $('p-email').value.trim(), line: $('p-line').value.trim(),
     defaultFee: Math.max(0, Number($('p-fee').value) || 0),
     note: $('p-note').value.trim(),
     createdAt: (prev && prev.createdAt) || Date.now(),
     updatedAt: Date.now()
   };
-  people[id] = obj; // 先更新本地，讓案子表單的下拉選單立刻選得到
+  people[id] = obj; // 先更新本地，讓案子表單的選單立刻選得到
   store.save('people', id, obj).catch(failed);
   const cb = personCallback;
-  closeModal('person-modal');
   toast(editingPersonId ? '已更新人員' : `已新增 ${name}`);
+  closeSheet('person-sheet');
   if (cb) cb(id);
   render();
 }
@@ -1190,7 +1193,7 @@ function deletePerson() {
     : `確定刪除 ${p.name}？`;
   if (!confirm(msg)) return;
   store.remove('people', editingPersonId).catch(failed);
-  closeModal('person-modal');
+  closeSheet('person-sheet');
   toast('已刪除');
 }
 
@@ -1199,7 +1202,7 @@ function exportAllICS() {
   const { text, count } = C.buildICS(entries(), { from: today(), interviewHours: CONFIG.INTERVIEW_HOURS });
   if (!count) return toast('沒有未來的採訪或交稿可以匯出');
   download(`採訪排程_${today()}.ics`, text, 'text/calendar;charset=utf-8');
-  toast(`已匯出 ${count} 個行程，用 Outlook 開啟即可加入行事曆`, 4000);
+  toast(`已匯出 ${count} 個行程`, 3000);
 }
 function exportJobICS(id) {
   const e = entries().find(([k]) => k === id);
@@ -1207,7 +1210,7 @@ function exportJobICS(id) {
   const { text, count } = C.buildICS([e], { interviewHours: CONFIG.INTERVIEW_HOURS });
   if (!count) return toast('這個案子沒有可以加入行事曆的日期');
   download(`採訪_${safeName(e[1].client || e[1].topic)}_${e[1].interviewDate || today()}.ics`, text, 'text/calendar;charset=utf-8');
-  toast(`已下載 ${count} 個行程（採訪＋未交稿）`);
+  toast(`已下載 ${count} 個行程`);
 }
 function exportBackup() {
   const data = { app: 'interview-crew', exportedAt: new Date().toISOString(), people, jobs };
@@ -1220,23 +1223,30 @@ function renderClientList() {
 }
 
 // ── 啟動 ──────────────────────────────────────────────────────
-// 靜態按鈕補上圖示
-$('btn-ics').innerHTML = icon('calendar-plus') + '<span class="lbl">匯出行事曆</span>';
-$('btn-backup').innerHTML = icon('download') + '<span class="lbl">備份</span>';
+document.querySelectorAll('[data-icon]').forEach(el => { el.insertAdjacentHTML('afterbegin', icon(el.dataset.icon)); });
 $('search-wrap').insertAdjacentHTML('afterbegin', icon('search'));
-document.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = icon(el.dataset.icon) + (el.dataset.label || ''); });
+
+// 大標題捲出畫面時，導覽列換成毛玻璃＋小標題
+new IntersectionObserver(([e]) => $('navbar').classList.toggle('scrolled', !e.isIntersecting), { rootMargin: '-44px 0px 0px 0px' })
+  .observe($('large-title'));
 
 document.addEventListener('keydown', e => {
+  if (!$('pin-screen').hidden) {
+    if (/^[0-9]$/.test(e.key)) pinPress(e.key);
+    else if (e.key === 'Backspace') pinDel();
+    return;
+  }
   if (e.key !== 'Escape') return;
-  if (!$('person-modal').hidden) closeModal('person-modal');
-  else if (!$('job-modal').hidden) closeModal('job-modal');
+  if (!$('actions').hidden) closeActions();
+  else if (!$('person-sheet').hidden) closeSheet('person-sheet');
+  else if (!$('job-sheet').hidden) closeSheet('job-sheet');
 });
 window.addEventListener('hashchange', () => setTab(['people', 'fees'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'schedule'));
 // 跨過午夜自動重算分組
 setInterval(() => { const t = today(); if (t !== lastToday) { lastToday = t; render(); } }, 60 * 1000);
 
 initPin();
-if (DEMO) { $('demo-banner').innerHTML = icon('info') + '<div>示範模式：以下是假資料，所有修改只存在這個分頁，重新整理就會還原。</div>'; $('demo-banner').hidden = false; }
+if (DEMO) { $('demo-banner').innerHTML = `<span class="tile t-orange">${icon('info')}</span><div>示範模式：以下是假資料，所有修改只存在這個分頁，重新整理就會還原。</div>`; $('demo-banner').hidden = false; }
 store.subscribe(
   data => { jobs = data; ui.loaded = true; renderClientList(); render(); },
   data => { people = data; render(); },
