@@ -280,6 +280,11 @@ main { max-width: 1280px; margin: 0 auto; padding: 24px 24px 80px; }
 /* iOS 的日期／時間欄有內建最小寬度，會把格子撐破，要拿掉原生外觀 */
 input[type="date"], input[type="time"] { -webkit-appearance: none; appearance: none; text-align: left; }
 input[type="date"]::-webkit-date-and-time-value, input[type="time"]::-webkit-date-and-time-value { text-align: left; min-height: 1.5em; }
+/* iPhone／iPad：拿掉原生外觀後日期文字會貼在上緣，用行高撐滿欄位讓它上下置中 */
+@supports (-webkit-touch-callout: none) {
+  input[type="date"], input[type="time"] { line-height: 42px; }
+  input[type="date"]::-webkit-date-and-time-value, input[type="time"]::-webkit-date-and-time-value { margin: 0; line-height: 42px; }
+}
 select { -webkit-appearance: none; appearance: none; padding-right: 32px !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238a949b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; }
 
 .crew-editor { margin: 22px 0 18px; }
