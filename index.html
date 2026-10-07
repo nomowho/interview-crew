@@ -788,7 +788,7 @@ function jobCard(id, job, st) {
           <span class="fee">${c.fee ? money(c.fee) : '—'}</span>
           <span class="due">${c.dueDate ? `交稿 ${esc(C.fmtDate(c.dueDate))}` : '交稿日未定'}</span>
           ${chipFor(c.dueDate, c.delivered, 'due')}
-          ${toggleChip({ kind: 'req', label: '已申請稿費', on: c.feeRequested, onchange: `toggleCrew('${esc(id)}', ${i}, 'feeRequested', this.checked)` })}
+          ${toggleChip({ kind: 'req', label: '已申請', on: c.feeRequested, onchange: `toggleCrew('${esc(id)}', ${i}, 'feeRequested', this.checked)` })}
           ${toggleChip({ kind: 'done', label: '已交稿', on: c.delivered, onchange: `toggleCrew('${esc(id)}', ${i}, 'delivered', this.checked)` })}
         </li>`).join('')}</ul>`
     : '<div class="crew-empty">還沒指派記者、攝影或美編</div>';
@@ -1016,7 +1016,7 @@ function renderCrewEditor() {
       <label class="ce-cell ce-c-due"><span class="ce-lbl">交稿日</span><input class="ce-due" type="date" value="${esc(c.dueDate)}"></label>
       <button type="button" class="icon-btn ce-x" onclick="removeCrewRow(${i})" title="移除" aria-label="移除這位">${icon('x')}</button>
       <div class="ce-flags">
-        ${toggleChip({ kind: 'req', label: '已申請稿費', on: c.feeRequested, cls: 'ce-req' })}
+        ${toggleChip({ kind: 'req', label: '已申請', on: c.feeRequested, cls: 'ce-req' })}
         ${toggleChip({ kind: 'done', label: '已交稿', on: c.delivered, cls: 'ce-done' })}
       </div>
     </div>`).join('') : '<div class="ce-empty">還沒有成員，按下方「加一位」。</div>';
