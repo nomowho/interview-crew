@@ -159,20 +159,15 @@ button.cell:active { background: var(--cell-hl); transition: none; }
 .job-head .chev { align-self: center; }
 .job.lv-done .job-head, .job.lv-done .crew-cell { opacity: .55; }
 
-.crew-cell { align-items: flex-start; padding-left: 16px; }
-.ring { position: relative; display: grid; place-items: center; width: 46px; height: 24px; flex: none; cursor: pointer; }
-.ring input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-.ring span { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--gray-3); transition: box-shadow .15s; }
-.ring span::after { content: ""; width: 14px; height: 14px; border-radius: 50%; background: var(--green); transform: scale(0); transition: transform .25s var(--ease); }
-.ring input:checked + span { box-shadow: inset 0 0 0 1.5px var(--green); }
-.ring input:checked + span::after { transform: scale(1); }
-.ring input:focus-visible + span { outline: 3px solid color-mix(in srgb, var(--blue) 50%, transparent); outline-offset: 2px; }
+/* 成員列跟案子標題對齊（左邊 16＋日期方塊 46＋間距 12） */
+.crew-cell { align-items: flex-start; padding-left: 74px; }
 .crew-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .role-tag { flex: none; color: var(--gray); font-size: 13px; font-weight: 600; }
 .role-tag.r-記者 { color: var(--blue); } .role-tag.r-攝影 { color: var(--orange); } .role-tag.r-美編 { color: var(--teal); }
 .crew-name { flex: 1; min-width: 0; overflow: hidden; font-size: 17px; text-overflow: ellipsis; white-space: nowrap; }
 .crew-fee { flex: none; color: var(--label-2); font-size: 17px; }
-.crew-line2 { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 3px; }
+.crew-line2 { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; margin-top: 3px; }
+.caps { display: flex; gap: 6px; margin-left: auto; }
 .due-text { color: var(--label-2); font-size: 15px; line-height: 20px; }
 .nowrap { white-space: nowrap; }
 .capsule { position: relative; display: inline-flex; align-items: center; gap: 4px; height: 28px; flex: none; padding: 0 11px 0 8px; border-radius: 14px; background: var(--fill); color: var(--label-2); font-size: 13px; font-weight: 600; cursor: pointer; user-select: none; -webkit-user-select: none; transition: background .2s, color .2s; }
@@ -180,10 +175,11 @@ button.cell:active { background: var(--cell-hl); transition: none; }
 .capsule .ico { width: 16px; height: 16px; stroke-width: 2; }
 .capsule .on { display: none; }
 .capsule:has(input:checked) { background: color-mix(in srgb, var(--blue) 15%, transparent); color: var(--blue); }
+.capsule.done:has(input:checked) { background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
 .capsule:has(input:checked) .on { display: block; } .capsule:has(input:checked) .off { display: none; }
 .capsule:has(input:focus-visible) { outline: 3px solid color-mix(in srgb, var(--blue) 50%, transparent); outline-offset: 2px; }
-.note-cell { align-items: flex-start; padding-left: 0; color: var(--label-2); font-size: 15px; line-height: 20px; white-space: pre-wrap; overflow-wrap: anywhere; }
-.note-cell .ico { width: 16px; height: 16px; margin: 2px 15px 0; color: var(--gray); }
+.note-cell { align-items: flex-start; padding-left: 46px; color: var(--label-2); font-size: 15px; line-height: 20px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.note-cell .ico { width: 16px; height: 16px; margin: 2px 0 0; color: var(--gray); }
 .muted-cell { color: var(--label-2); font-size: 15px; }
 
 /* ── 人員 ── */
@@ -801,16 +797,17 @@ function jobCard(id, job, st) {
     job.interviewee ? `<span>${icon('mic')}${esc(job.interviewee)}</span>` : '',
     job.location ? `<span>${icon('map-pin')}${esc(job.location)}</span>` : ''
   ].join('');
+  const capsule = (i, c, field, label, cls) =>
+    `<label class="capsule ${cls}"><input type="checkbox" aria-label="${esc(c.name)} ${label}"${c[field] ? ' checked' : ''} onchange="toggleCrew('${esc(id)}', ${i}, '${field}', this.checked)">${icon('circle', 'off')}${icon('circle-check', 'on')}${label}</label>`;
   const crew = job.crew.length ? job.crew.map((c, i) => {
     let due;
-    if (c.delivered) due = '<span class="due-text lv-done">已交稿</span>';
-    else if (!C.isDate(c.dueDate)) due = '<span class="due-text lv-none">未填交稿日</span>';
+    if (!C.isDate(c.dueDate)) due = `<span class="due-text lv-none">${c.delivered ? '' : '未填交稿日'}</span>`;
+    else if (c.delivered) due = `<span class="due-text">交稿 ${shortDate(c.dueDate)}</span>`;
     else { const cd = countdown(c.dueDate); due = `<span class="due-text">交稿 ${shortDate(c.dueDate)} · <span class="${cd.cls} nowrap">${cd.text}</span></span>`; }
-    return `<div class="cell crew-cell">
-      <label class="ring" title="已交稿"><input type="checkbox" aria-label="${esc(c.name)} 已交稿"${c.delivered ? ' checked' : ''} onchange="toggleCrew('${esc(id)}', ${i}, 'delivered', this.checked)"><span></span></label>
+    return `<div class="cell crew-cell${c.delivered ? ' is-done' : ''}">
       <span class="cell-main">
         <span class="crew-line"><span class="role-tag ${roleClass(c.role)}">${esc(c.role || '人員')}</span><span class="crew-name">${esc(c.name)}</span><span class="crew-fee">${c.fee ? money(c.fee) : '—'}</span></span>
-        <span class="crew-line2">${due}<label class="capsule"><input type="checkbox" aria-label="${esc(c.name)} 已申請"${c.feeRequested ? ' checked' : ''} onchange="toggleCrew('${esc(id)}', ${i}, 'feeRequested', this.checked)">${icon('circle', 'off')}${icon('circle-check', 'on')}已申請</label></span>
+        <span class="crew-line2">${due}<span class="caps">${capsule(i, c, 'feeRequested', '已申請', 'req')}${capsule(i, c, 'delivered', '已交稿', 'done')}</span></span>
       </span>
     </div>`;
   }).join('') : '<div class="cell muted-cell">還沒指派記者、攝影或美編</div>';
