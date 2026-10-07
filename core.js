@@ -228,9 +228,64 @@
     return { text: L.map(foldLine).join('\r\n') + '\r\n', count };
   }
 
+  // ── Outlook 會議邀請連結 ─────────────────────────────────────
+  // 開 Outlook 網頁版「新增會議」，與會者＝有 Email 的成員；Nomo 確認後自己按傳送
+  // 規格：https://interactiondesignfoundation.github.io/add-event-to-calendar-docs/services/outlook-web.html
+  const OUTLOOK_COMPOSE = 'https://outlook.office.com/calendar/deeplink/compose';
+  function twToISO(date, time, plusHours = 0) {
+    const [y, m, d] = date.split('-').map(Number);
+    const [hh, mm] = time.split(':').map(Number);
+    return new Date(Date.UTC(y, m - 1, d, hh - 8 + plusHours, mm)).toISOString().replace(/\.\d{3}Z$/, 'Z');
+  }
+  function htmlEsc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  }
+  // crew 每人需帶 name / role / dueDate / email；稿費一律不放進邀請（所有與會者都看得到）
+  function buildInvite(job, opts = {}) {
+    const hours = opts.interviewHours || 2;
+    const crew = crewOf(job);
+    const seen = new Set(), attendees = [], missing = [];
+    crew.forEach(c => {
+      const email = String(c.email || '').trim();
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        if (!seen.has(email.toLowerCase())) { seen.add(email.toLowerCase()); attendees.push({ name: c.name || '', role: c.role || '', email }); }
+      } else {
+        missing.push({ name: c.name || '', role: c.role || '' });
+      }
+    });
+    if (!isDate(job.interviewDate)) return { url: '', attendees, missing, error: 'nodate' };
+
+    const title = [job.client, job.topic].filter(Boolean).join(' ') || '廣編採訪';
+    const info = [
+      job.client && `客戶：${htmlEsc(job.client)}`,
+      job.topic && `主題：${htmlEsc(job.topic)}`,
+      job.interviewee && `受訪者：${htmlEsc(job.interviewee)}`,
+      job.issue && `刊期：${htmlEsc(job.issue)}`,
+      job.location && `地點：${htmlEsc(job.location)}`
+    ].filter(Boolean).join('<br>');
+    const team = crew.map(c => `${htmlEsc(c.role || '人員')}　${htmlEsc(c.name)}${isDate(c.dueDate) ? `（交稿 ${fmtDate(c.dueDate)}）` : ''}`).join('<br>');
+    const body = [
+      info && `<p>${info}</p>`,
+      team && `<p><b>採訪團隊</b><br>${team}</p>`,
+      job.note && `<p>備註：${htmlEsc(job.note).replace(/\r?\n/g, '<br>')}</p>`
+    ].filter(Boolean).join('');
+
+    const params = [['subject', `採訪｜${title}`]];
+    if (isTime(job.interviewTime)) {
+      params.push(['startdt', twToISO(job.interviewDate, job.interviewTime)], ['enddt', twToISO(job.interviewDate, job.interviewTime, hours)]);
+    } else {
+      params.push(['startdt', job.interviewDate], ['enddt', job.interviewDate], ['allday', 'true']);
+    }
+    if (job.location) params.push(['location', job.location]);
+    if (body) params.push(['body', body]);
+    if (attendees.length) params.push(['to', attendees.map(a => a.email).join(',')]);
+    const query = params.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+    return { url: `${OUTLOOK_COMPOSE}?path=/calendar/action/compose&rru=addevent&${query}`, attendees, missing };
+  }
+
   return {
     TZ, todayTW, isDate, isTime, diffDays, addDays, weekday, fmtDate, level,
     crewOf, feeOf, jobStatus, reminderItems, monthlyFees,
-    icsEscape, foldLine, twToUTC, buildICS
+    icsEscape, foldLine, twToUTC, buildICS, twToISO, buildInvite
   };
 });

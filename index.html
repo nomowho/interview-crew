@@ -380,7 +380,11 @@ button.cell:active { background: var(--cell-hl); transition: none; }
       <div class="group-foot">先選角色再選人，會自動帶入預設稿費與交稿日（採訪後：記者 7 天、攝影 3 天、美編 10 天）。</div>
       <div class="group-caption">備註</div>
       <div class="form-group"><div class="form-row"><textarea id="j-note" placeholder="聯絡窗口、注意事項…"></textarea></div></div>
-      <div class="form-group" id="j-extra"><button type="button" class="form-row action" data-icon="calendar-plus" onclick="exportJobICS(editingJobId)">加入行事曆</button></div>
+      <div class="form-group">
+        <button type="button" class="form-row action" data-icon="send" onclick="sendInvite()">寄採訪邀請</button>
+        <button type="button" class="form-row action" id="j-ics" data-icon="calendar-plus" onclick="exportJobICS(editingJobId)">加入我的行事曆</button>
+      </div>
+      <div class="group-foot">寄採訪邀請會開啟 Outlook 新增會議，有 Email 的成員自動列為與會者，你確認後按「傳送」才會寄出。邀請內容不含稿費；Outlook 會自動打開 Teams 會議，實體採訪記得關掉。</div>
       <div class="form-group" id="j-delete"><button type="button" class="form-row action danger" onclick="deleteJob()">刪除案子</button></div>
     </div>
   </div>
@@ -479,6 +483,7 @@ const ICONS = {
   'mic': '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>',
   'plus': '<path d="M5 12h14"/><path d="M12 5v14"/>',
   'search': '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  'send': '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
   'sticky-note': '<path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"/><path d="M15 3v4a2 2 0 0 0 2 2h4"/>',
   'triangle-alert': '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
   'users': '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -977,7 +982,7 @@ function openJob(id) {
   $('j-date').value = j.interviewDate || '';
   $('j-time').value = j.interviewTime || '';
   $('j-note').value = j.note || '';
-  $('j-delete').hidden = $('j-extra').hidden = !id;
+  $('j-delete').hidden = $('j-ics').hidden = !id;
   draftCrew = id
     ? C.crewOf(j).map(c => ({ personId: c.personId || '', name: c.name || '', role: c.role || roleOf(people[c.personId]), fee: c.fee || '', dueDate: c.dueDate || '', delivered: !!c.delivered, feeRequested: !!c.feeRequested }))
     : [blankCrew('記者'), blankCrew('攝影')];
@@ -1211,6 +1216,27 @@ function exportJobICS(id) {
   if (!count) return toast('這個案子沒有可以加入行事曆的日期');
   download(`採訪_${safeName(e[1].client || e[1].topic)}_${e[1].interviewDate || today()}.ics`, text, 'text/calendar;charset=utf-8');
   toast(`已下載 ${count} 個行程`);
+}
+// 用表單上「目前看到的內容」產生邀請（不必先儲存）；沒 Email 的人開完後提醒另外通知
+function sendInvite() {
+  readCrewFromDOM();
+  const v = id => $(id).value.trim();
+  const job = {
+    client: v('j-client'), topic: v('j-topic'), issue: v('j-issue'), interviewee: v('j-interviewee'), location: v('j-location'),
+    interviewDate: v('j-date'), interviewTime: v('j-time'), note: $('j-note').value.trim(),
+    crew: draftCrew.filter(c => c.personId).map(c => {
+      const p = people[c.personId] || {};
+      return { name: p.name || c.name, role: c.role, dueDate: c.dueDate, email: p.email || '' };
+    })
+  };
+  if (!C.isDate(job.interviewDate)) return toast('請先填採訪日期');
+  if (!job.crew.length) return toast('請先選好成員');
+  const inv = C.buildInvite(job, { interviewHours: CONFIG.INTERVIEW_HOURS });
+  // 要在點擊當下直接開新分頁，先跳確認框的話 Safari 會擋彈出視窗
+  window.open(inv.url, '_blank', 'noopener');
+  if (!inv.attendees.length) toast('成員都還沒填 Email，邀請裡沒有與會者', 4500);
+  else if (inv.missing.length) toast(`${inv.missing.map(m => m.name).join('、')} 沒有 Email，記得另外通知`, 4500);
+  else toast(`已帶入 ${inv.attendees.length} 位與會者，到 Outlook 確認後按傳送`, 3500);
 }
 function exportBackup() {
   const data = { app: 'interview-crew', exportedAt: new Date().toISOString(), people, jobs };
