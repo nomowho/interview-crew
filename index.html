@@ -81,6 +81,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 20px 20px 72px; }
 .role { display: inline-flex; justify-content: center; width: 42px; padding: 1px 0; border-radius: 5px; background: var(--soft); color: var(--sub); font-size: 11.5px; font-weight: 500; flex: none; }
 .role.r-記者 { background: #ECEFF6; color: #3E4A72; }
 .role.r-攝影 { background: #F3EEE6; color: #6E5434; }
+.role.r-美編 { background: #F0ECF5; color: #5B4777; }
 
 /* ── 今日提醒 ── */
 .today-box { margin-bottom: 24px; padding: 16px 18px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
@@ -353,7 +354,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 20px 20px 72px; }
       <div class="crew-editor">
         <div class="ce-title">
           <h3>採訪團隊</h3>
-          <span class="hint">選人後自動帶入角色、預設稿費與交稿日（記者採訪後 7 天、攝影 3 天，可改）</span>
+          <span class="hint">選人後自動帶入角色、預設稿費與交稿日（採訪後：記者 7 天、攝影 3 天、美編 10 天，可改）</span>
         </div>
         <div class="ce-cols"><span>人員</span><span>角色</span><span>稿費</span><span>交稿日</span><span></span><span></span></div>
         <div id="crew-rows"></div>
@@ -408,8 +409,8 @@ main { max-width: 1080px; margin: 0 auto; padding: 20px 20px 72px; }
 const CONFIG = {
   PIN: '3035',
   PATH: 'interview-crew',
-  ROLES: ['記者', '攝影', '其他'],
-  DUE_OFFSET: { '記者': 7, '攝影': 3, '其他': 7 },
+  ROLES: ['記者', '攝影', '美編', '其他'],
+  DUE_OFFSET: { '記者': 7, '攝影': 3, '美編': 10, '其他': 7 },
   INTERVIEW_HOURS: 2
 };
 const FIREBASE = {
