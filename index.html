@@ -52,6 +52,8 @@
   }
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+/* 關掉 iPhone 的「點兩下放大」（連按 0000 這種密碼會誤觸），兩指縮放照常可用 */
+html, body, button, a, label, input, select, textarea, .key, .cell, #pin-screen { touch-action: manipulation; }
 [hidden] { display: none !important; }
 html, body {
   margin: 0; padding: 0; background: var(--bg); color: var(--label);
