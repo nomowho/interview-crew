@@ -51,14 +51,25 @@
     const n = Number(c && c.fee);
     return Number.isFinite(n) && n > 0 ? n : 0;
   }
+  // 免採訪的案子（noInterview）沒有採訪日，一律忽略殘留的 interviewDate
+  function interviewOf(job) {
+    return !job.noInterview && isDate(job.interviewDate) ? job.interviewDate : '';
+  }
+  // 案子的代表日期：有採訪看採訪日；免採訪看最早的交稿日（稿費歸月、卡片日期方塊都用這個）
+  function anchorDate(job) {
+    if (!job) return '';
+    if (!job.noInterview) return interviewOf(job);
+    return crewOf(job).map(c => c.dueDate).filter(isDate).sort()[0] || '';
+  }
 
   // ── 單一案子狀態 ───────────────────────────────────────────
   // 採訪日已過＝採訪完成；交稿以「已交」勾選為準
   function jobStatus(job, today) {
     const crew = crewOf(job);
     const pending = [];
-    if (isDate(job.interviewDate) && diffDays(today, job.interviewDate) >= 0) {
-      pending.push({ kind: 'interview', date: job.interviewDate, time: job.interviewTime || '' });
+    const iv = interviewOf(job);
+    if (iv && diffDays(today, iv) >= 0) {
+      pending.push({ kind: 'interview', date: iv, time: job.interviewTime || '' });
     }
     crew.forEach((c, i) => {
       if (!c.delivered && isDate(c.dueDate)) {
@@ -69,7 +80,7 @@
     const overdue = pending.filter(e => e.kind === 'due' && diffDays(today, e.date) < 0).length;
 
     if (!pending.length) {
-      const hasAnyDate = isDate(job.interviewDate) || crew.some(c => isDate(c.dueDate));
+      const hasAnyDate = !!iv || crew.some(c => isDate(c.dueDate));
       if (missingDue || !hasAnyDate) return { group: 'nodate', nextDate: '', next: null, overdue: 0, missingDue };
       return { group: 'done', nextDate: '', next: null, overdue: 0, missingDue: false };
     }
@@ -85,7 +96,7 @@
     entries.forEach(([id, job]) => {
       if (!job) return;
       const base = { jobId: id, client: job.client || '', topic: job.topic || '' };
-      if (isDate(job.interviewDate)) {
+      if (interviewOf(job)) {
         const d = diffDays(today, job.interviewDate);
         if (d === 0 || d === 1) {
           items.push({
@@ -120,7 +131,8 @@
     const months = {};
     entries.forEach(([id, job]) => {
       if (!job) return;
-      const key = isDate(job.interviewDate) ? job.interviewDate.slice(0, 7) : 'none';
+      const anchor = anchorDate(job);
+      const key = anchor ? anchor.slice(0, 7) : 'none';
       const m = months[key] || (months[key] = { month: key, total: 0, jobs: [], people: {} });
       const crew = crewOf(job);
       const jobTotal = crew.reduce((s, c) => s + feeOf(c), 0);
@@ -136,7 +148,7 @@
     return Object.values(months)
       .map(m => ({
         ...m,
-        jobs: m.jobs.sort((a, b) => (a.job.interviewDate || '').localeCompare(b.job.interviewDate || '')),
+        jobs: m.jobs.sort((a, b) => anchorDate(a.job).localeCompare(anchorDate(b.job))),
         people: Object.values(m.people).sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
       }))
       .sort((a, b) => (a.month === 'none') - (b.month === 'none') || b.month.localeCompare(a.month));
@@ -200,7 +212,7 @@
       if (!job) return;
       const crew = crewOf(job);
       const title = [job.client, job.topic].filter(Boolean).join(' ') || '廣編採訪';
-      if (isDate(job.interviewDate) && (!from || job.interviewDate >= from)) {
+      if (interviewOf(job) && (!from || job.interviewDate >= from)) {
         const desc = [
           job.interviewee ? `受訪者：${job.interviewee}` : '',
           ...crew.map(c => `${c.role || '人員'}：${c.name || ''}${c.dueDate ? `（交稿 ${fmtDate(c.dueDate)}）` : ''}`),
@@ -218,7 +230,7 @@
         pushEvent({
           uid: `${id}-due-${c.personId || i}@interview-crew.nomowho`, date: c.dueDate, time: '',
           summary: `交稿｜${c.name || ''}（${c.role || '人員'}）${title}`,
-          description: job.interviewDate ? `採訪日：${fmtDate(job.interviewDate)}` : '',
+          description: interviewOf(job) ? `採訪日：${fmtDate(job.interviewDate)}` : '免採訪',
           alarm: '-PT15H'
         });
         count++;
@@ -253,6 +265,7 @@
         missing.push({ name: c.name || '', role: c.role || '' });
       }
     });
+    if (job.noInterview) return { url: '', attendees, missing, error: 'nointerview' };
     if (!isDate(job.interviewDate)) return { url: '', attendees, missing, error: 'nodate' };
 
     const title = [job.client, job.topic].filter(Boolean).join(' ') || '廣編採訪';
@@ -285,7 +298,7 @@
 
   return {
     TZ, todayTW, isDate, isTime, diffDays, addDays, weekday, fmtDate, level,
-    crewOf, feeOf, jobStatus, reminderItems, monthlyFees,
+    crewOf, feeOf, interviewOf, anchorDate, jobStatus, reminderItems, monthlyFees,
     icsEscape, foldLine, twToUTC, buildICS, twToISO, buildInvite
   };
 });

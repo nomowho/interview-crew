@@ -389,24 +389,30 @@ button.cell:active { background: var(--cell-hl); transition: none; }
       </div>
       <div class="form-group">
         <label class="form-row"><span class="fr-label">主題</span><input id="j-topic" placeholder="永續金融 CEO 專訪"></label>
-        <label class="form-row"><span class="fr-label">受訪者</span><input id="j-interviewee" placeholder="姓名＋職稱"></label>
-        <label class="form-row"><span class="fr-label">地點</span><input id="j-location" placeholder="客戶總部 18F"></label>
+        <label class="form-row"><span class="fr-label wide">需要採訪</span><span class="switch"><input type="checkbox" role="switch" id="j-has-iv" aria-label="需要採訪" onchange="onToggleInterview()"><span class="track"></span></span></label>
       </div>
-      <div class="group-caption">採訪時間</div>
-      <div class="form-group">
-        <label class="form-row"><span class="fr-label">日期</span><input id="j-date" class="pill-input" type="date" onchange="onInterviewDateChange()"></label>
-        <label class="form-row"><span class="fr-label">時間</span><input id="j-time" class="pill-input" type="time"></label>
+      <!-- 免採訪時整段收起來 -->
+      <div id="j-iv">
+        <div class="form-group">
+          <label class="form-row"><span class="fr-label">受訪者</span><input id="j-interviewee" placeholder="姓名＋職稱"></label>
+          <label class="form-row"><span class="fr-label">地點</span><input id="j-location" placeholder="客戶總部 18F"></label>
+        </div>
+        <div class="group-caption">採訪時間</div>
+        <div class="form-group">
+          <label class="form-row"><span class="fr-label">日期</span><input id="j-date" class="pill-input" type="date" onchange="onInterviewDateChange()"></label>
+          <label class="form-row"><span class="fr-label">時間</span><input id="j-time" class="pill-input" type="time"></label>
+        </div>
       </div>
       <div id="crew-rows"></div>
       <div class="form-group"><button type="button" class="form-row action" data-icon="circle-plus" onclick="addCrewRow()">加一位成員</button></div>
-      <div class="group-foot">先選角色再選人，會自動帶入預設稿費與交稿日（採訪後：記者 7 天、攝影 3 天、美編 10 天）。</div>
+      <div class="group-foot" id="j-crew-hint"></div>
       <div class="group-caption">備註</div>
       <div class="form-group"><div class="form-row"><textarea id="j-note" placeholder="聯絡窗口、注意事項…"></textarea></div></div>
-      <div class="form-group">
-        <button type="button" class="form-row action" data-icon="send" onclick="sendInvite()">寄採訪邀請</button>
+      <div class="form-group" id="j-actions">
+        <button type="button" class="form-row action" id="j-invite" data-icon="send" onclick="sendInvite()">寄採訪邀請</button>
         <button type="button" class="form-row action" id="j-ics" data-icon="calendar-plus" onclick="exportJobICS(editingJobId)">加入我的行事曆</button>
       </div>
-      <div class="group-foot">寄採訪邀請會開啟 Outlook 新增會議，有 Email 的成員自動列為與會者，你確認後按「傳送」才會寄出。邀請內容不含稿費；Outlook 會自動打開 Teams 會議，實體採訪記得關掉。</div>
+      <div class="group-foot" id="j-invite-hint">寄採訪邀請會開啟 Outlook 新增會議，有 Email 的成員自動列為與會者，你確認後按「傳送」才會寄出。邀請內容不含稿費；Outlook 會自動打開 Teams 會議，實體採訪記得關掉。</div>
       <div class="form-group" id="j-delete"><button type="button" class="form-row action danger" onclick="deleteJob()">刪除案子</button></div>
     </div>
   </div>
@@ -847,6 +853,7 @@ function demoSeed() {
     j3: { client: 'C 百貨', issue: '遠見 11 月號', topic: '週年慶與通路轉型', interviewee: '總經理（示範）', location: '信義新天地', interviewDate: t, interviewTime: '16:00', note: '受訪者只有 40 分鐘，攝影先到場架燈', crew: [m('p1', 12000, d(7)), m('p2', 6000, d(3))] },
     j4: { client: 'A 金控', issue: '遠見 11 月號', topic: '高資產客戶的傳承規劃', interviewee: '私銀處長（示範）', location: '', interviewDate: d(-5), interviewTime: '15:00', note: '', crew: [m('p3', 10000, d(2)), m('p4', 5000, d(-1), true)] },
     j5: { client: 'D 能源', issue: '遠見 12 月號', topic: '離岸風電的下一步', interviewee: '', location: '', interviewDate: d(16), interviewTime: '', note: '', crew: [m('p3', 10000, d(23))] },
+    j7: { client: 'F 保險', issue: '遠見 11 月號', topic: '品牌形象稿（客戶提供資料）', noInterview: true, interviewee: '', location: '', interviewDate: '', interviewTime: '', note: '', crew: [m('p3', 9000, d(5)), m('p5', 7000, d(9))] },
     j6: { client: 'E 半導體', issue: '遠見 10 月號', topic: '先進封裝的人才戰', interviewee: '副總經理（示範）', location: '新竹科學園區', interviewDate: d(-30), interviewTime: '09:30', note: '', crew: [m('p1', 12000, d(-23), true, true), m('p4', 5000, d(-27), true, true)] }
   };
   Object.values(J).forEach(j => { j.createdAt = now; j.updatedAt = now; });
@@ -1020,14 +1027,17 @@ function matches(job, q) {
 }
 
 function jobCard(id, job, st) {
-  const hasDate = C.isDate(job.interviewDate);
-  const [, mm, dd] = hasDate ? job.interviewDate.split('-').map(Number) : [];
-  const cal = hasDate
+  // 日期方塊：有採訪顯示採訪日；免採訪顯示最早的交稿日
+  const anchor = C.anchorDate(job);
+  const [, mm, dd] = anchor ? anchor.split('-').map(Number) : [];
+  const cal = anchor
     ? `<span class="cal"><span class="cal-m">${mm} 月</span><span class="cal-d">${dd}</span></span>`
-    : '<span class="cal none"><span class="cal-m">未排</span><span class="cal-d">—</span></span>';
+    : `<span class="cal none"><span class="cal-m">${job.noInterview ? '免採訪' : '未排'}</span><span class="cal-d">—</span></span>`;
   const sub = [job.client, job.issue].filter(Boolean).map(esc).join(' · ');
   let when = '';
-  if (hasDate) {
+  if (job.noInterview) {
+    when = `<span>免採訪${anchor ? ` · 最早交稿 週${C.weekday(anchor)}` : ''}</span>`;
+  } else if (C.interviewOf(job)) {
     const s = interviewStatus(job.interviewDate);
     when = `<span class="${s.cls}">週${C.weekday(job.interviewDate)}${job.interviewTime ? ` ${esc(job.interviewTime)}` : ''} · ${s.text}</span>`;
   }
@@ -1070,7 +1080,7 @@ function renderSchedule() {
     (buckets[st.group] = buckets[st.group] || []).push({ id, job, st });
   });
   Object.entries(buckets).forEach(([g, arr]) => arr.sort((a, b) => g === 'done'
-    ? (b.job.interviewDate || '').localeCompare(a.job.interviewDate || '')
+    ? C.anchorDate(b.job).localeCompare(C.anchorDate(a.job))
     : a.st.nextDate.localeCompare(b.st.nextDate) || (a.st.next ? a.st.next.time : '').localeCompare(b.st.next ? b.st.next.time : '')));
 
   if (!list.length) {
@@ -1129,7 +1139,7 @@ function personStats() {
     st.count += 1;
     st.total += C.feeOf(c);
     const cands = [];
-    if (C.isDate(j.interviewDate) && j.interviewDate >= t) cands.push({ date: j.interviewDate, label: '採訪', job: j, id });
+    if (C.interviewOf(j) && j.interviewDate >= t) cands.push({ date: j.interviewDate, label: '採訪', job: j, id });
     if (!c.delivered && C.isDate(c.dueDate)) cands.push({ date: c.dueDate, label: c.dueDate < t ? '逾期未交稿' : '交稿', job: j, id });
     cands.forEach(x => { if (!st.next || x.date < st.next.date) st.next = x; });
   }));
@@ -1160,7 +1170,7 @@ function renderPeople() {
 
 // ── 稿費 ──────────────────────────────────────────────────────
 function monthLabel(key) {
-  if (key === 'none') return '未排採訪日';
+  if (key === 'none') return '未排日期';
   const [y, m] = key.split('-').map(Number);
   return `${y} 年 ${m} 月`;
 }
@@ -1173,7 +1183,7 @@ function renderFees() {
   const yearTotal = yearMonths.reduce((s, m) => s + m.total, 0);
   const yearJobs = yearMonths.reduce((s, m) => s + m.jobs.length, 0);
   $('fee-hero').innerHTML = `<div class="list">
-    <div class="cell"><span class="cell-main"><span class="cell-sub">本月稿費 · ${monthLabel(thisMonth)}</span><span class="big-amt">${money(cur ? cur.total : 0)}</span><span class="cell-sub" style="font-size:13px">${cur ? cur.jobs.length : 0} 案 · 依採訪日歸月</span></span></div>
+    <div class="cell"><span class="cell-main"><span class="cell-sub">本月稿費 · ${monthLabel(thisMonth)}</span><span class="big-amt">${money(cur ? cur.total : 0)}</span><span class="cell-sub" style="font-size:13px">${cur ? cur.jobs.length : 0} 案 · 依採訪日歸月，免採訪看交稿日</span></span></div>
     <div class="cell"><span class="cell-main">${thisYear} 年累計</span><span class="cell-value">${money(yearTotal)}</span></div>
     <div class="cell"><span class="cell-main">${thisYear} 年案件數</span><span class="cell-value">${yearJobs} 案</span></div>
   </div>`;
@@ -1188,7 +1198,7 @@ function renderFees() {
         <span class="cell-value" style="font-size:15px">${p.count} 件</span><span class="amt">${money(p.total)}</span></div>`).join('')}
       <button class="cell toggle-cell${open ? ' open' : ''}" onclick="toggleMonth('${m.month}')">案件明細${CHEV}</button>
       ${open ? m.jobs.map(({ id, job, total }) => `<button class="cell detail-cell" onclick="focusJob('${esc(id)}')">
-        <span class="cell-main"><span class="cell-title">${job.interviewDate ? `${esc(C.fmtDate(job.interviewDate))} ` : ''}${esc([job.client, job.topic].filter(Boolean).join('｜') || '（未命名）')}</span>
+        <span class="cell-main"><span class="cell-title">${C.anchorDate(job) ? `${esc(C.fmtDate(C.anchorDate(job)))} ` : ''}${esc([job.client, job.topic].filter(Boolean).join('｜') || '（未命名）')}${job.noInterview ? '（免採訪）' : ''}</span>
         <span class="cell-sub">${job.crew.map(c => `${esc(c.role)} ${esc(c.name)} ${c.fee ? money(c.fee) : '—'}${c.feeRequested ? '（已申請）' : ''}`).join(' · ')}</span></span>
         <span class="amt" style="font-size:15px">${money(total)}</span></button>`).join('') : ''}
     </div>`;
@@ -1218,7 +1228,9 @@ function openJob(id) {
   $('j-date').value = j.interviewDate || '';
   $('j-time').value = j.interviewTime || '';
   $('j-note').value = j.note || '';
-  $('j-delete').hidden = $('j-ics').hidden = !id;
+  $('j-has-iv').checked = !j.noInterview;
+  $('j-delete').hidden = !id;
+  applyInterviewMode();
   draftCrew = id
     ? C.crewOf(j).map(c => ({ personId: c.personId || '', name: c.name || '', role: c.role || roleOf(people[c.personId]), fee: c.fee || '', dueDate: c.dueDate || '', delivered: !!c.delivered, feeRequested: !!c.feeRequested }))
     : [blankCrew('記者'), blankCrew('攝影')];
@@ -1226,6 +1238,19 @@ function openJob(id) {
   openSheet('job-sheet');
 }
 function blankCrew(role) { return { personId: '', name: '', role: role || '記者', fee: '', dueDate: '', delivered: false, feeRequested: false }; }
+const hasInterview = () => $('j-has-iv').checked;
+// 「需要採訪」開關：關掉時收起受訪者、地點、採訪時間與寄邀請（填過的值先留著，儲存時才清掉）
+function applyInterviewMode() {
+  const on = hasInterview();
+  $('j-iv').hidden = !on;
+  $('j-invite').hidden = $('j-invite-hint').hidden = !on;
+  $('j-ics').hidden = !editingJobId;
+  $('j-actions').hidden = $('j-invite').hidden && $('j-ics').hidden;
+  $('j-crew-hint').textContent = on
+    ? '先選角色再選人，會自動帶入預設稿費與交稿日（採訪後：記者 7 天、攝影 3 天、美編 10 天）。'
+    : '免採訪：選人後會帶入預設稿費，交稿日請自己選。';
+}
+function onToggleInterview() { readCrewFromDOM(); applyInterviewMode(); }
 
 // 人員選單只列出該角色的人
 function personOptions(role, selected, fallbackName) {
@@ -1279,6 +1304,7 @@ function addCrewRow() {
 }
 function removeCrewRow(i) { readCrewFromDOM(); draftCrew.splice(i, 1); renderCrewEditor(); }
 function suggestDue(role) {
+  if (!hasInterview()) return ''; // 免採訪沒有基準日，交稿日讓使用者自己選
   const d = $('j-date').value;
   return C.isDate(d) ? C.addDays(d, CONFIG.DUE_OFFSET[role] || 7) : '';
 }
@@ -1351,10 +1377,12 @@ function saveJob() {
   }
   const prev = editingJobId ? jobs[editingJobId] : null;
   const id = editingJobId || store.newId('jobs');
-  const date = v('j-date'), time = v('j-time');
+  const iv = hasInterview();
+  const date = iv ? v('j-date') : '', time = iv ? v('j-time') : '';
   const obj = {
     client, topic,
-    issue: v('j-issue'), interviewee: v('j-interviewee'), location: v('j-location'),
+    issue: v('j-issue'), noInterview: !iv,
+    interviewee: iv ? v('j-interviewee') : '', location: iv ? v('j-location') : '',
     interviewDate: C.isDate(date) ? date : '', interviewTime: C.isTime(time) ? time : '',
     note: $('j-note').value.trim(),
     crew,
@@ -1465,6 +1493,7 @@ function sendInvite() {
       return { name: p.name || c.name, role: c.role, dueDate: c.dueDate, email: p.email || '' };
     })
   };
+  if (!hasInterview()) return toast('免採訪的案子不用寄採訪邀請');
   if (!C.isDate(job.interviewDate)) return toast('請先填採訪日期');
   if (!job.crew.length) return toast('請先選好成員');
   const inv = C.buildInvite(job, { interviewHours: CONFIG.INTERVIEW_HOURS });
