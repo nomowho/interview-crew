@@ -85,6 +85,10 @@ a { color: var(--blue); text-decoration: none; }
 .key.blank { visibility: hidden; }
 .key.del { background: none; }
 .key.del .ico { width: 26px; height: 26px; }
+.lock-step { display: flex; flex-direction: column; align-items: center; width: 100%; }
+.lock-list { width: 100%; max-width: 360px; margin-top: 26px; text-align: left; --sep-left: 68px; }
+.lock-avatar { width: 64px; height: 64px; margin-bottom: 14px; font-size: 26px; }
+.lock-switch { margin: 26px 0 0; }
 
 /* ── 導覽列：頂端透明，捲動後出現毛玻璃與小標題 ── */
 .navbar { position: sticky; top: 0; z-index: 50; padding-top: env(safe-area-inset-top); border-bottom: .5px solid transparent; transition: background .2s, border-color .2s; }
@@ -236,6 +240,7 @@ button.cell:active { background: var(--cell-hl); transition: none; }
 .form-row { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 6px 16px; border: none; background: none; color: var(--label); font-size: 17px; text-align: left; }
 .form-row + .form-row::before { content: ""; position: absolute; top: 0; right: 0; left: 16px; height: .5px; background: var(--sep); }
 .fr-label { flex: none; width: 64px; }
+.fr-label.wide { width: 96px; }
 .form-row input:not([type="checkbox"]):not([type="date"]):not([type="time"]), .form-row select, .form-row textarea {
   flex: 1; min-width: 0; height: 32px; margin: 0; padding: 0; border: none; background-color: transparent; color: var(--label); font-size: 17px; outline: none; -webkit-appearance: none; appearance: none;
 }
@@ -272,6 +277,12 @@ button.cell:active { background: var(--cell-hl); transition: none; }
 .as-title { padding: 14px 16px; color: var(--label-2); font-size: 13px; text-align: center; }
 .as-btn { display: block; width: 100%; height: 57px; border: none; border-top: .5px solid var(--sep); background: none; color: var(--blue); font-size: 20px; }
 .as-btn:active { background: var(--fill); }
+.as-btn.danger { color: var(--red); }
+.admin-tag { margin-left: 6px; padding: 1px 6px; border-radius: 5px; background: var(--fill); color: var(--label-2); font-size: 12px; font-weight: 600; vertical-align: 2px; }
+.row-btn { flex: none; padding: 6px 0 6px 10px; border: none; background: none; color: var(--blue); font-size: 15px; }
+.row-btn.danger { color: var(--red); }
+.row-btn:active { opacity: .35; }
+.pin-field { flex: 1; min-width: 0; letter-spacing: 6px; }
 .as-cancel { display: block; width: 100%; height: 57px; border: none; border-radius: 14px; background: var(--as-cancel); color: var(--blue); font-size: 20px; font-weight: 600; }
 .as-cancel:active { background: var(--cell-hl); }
 
@@ -296,12 +307,23 @@ button.cell:active { background: var(--cell-hl); transition: none; }
 
 <!-- 鎖定畫面 -->
 <div id="pin-screen">
-  <div class="lock-icon" data-icon="mic"></div>
-  <div class="lock-title">輸入密碼</div>
-  <div class="lock-sub">廣編採訪排程</div>
-  <div class="dots" id="pin-dots"><i></i><i></i><i></i><i></i></div>
-  <div class="lock-err" id="pin-err"></div>
-  <div class="keypad" id="keypad"></div>
+  <!-- 第一步：選帳號 -->
+  <div class="lock-step" id="lock-pick">
+    <div class="lock-icon" data-icon="mic"></div>
+    <div class="lock-title">廣編採訪排程</div>
+    <div class="lock-sub" id="lock-pick-sub">載入帳號中…</div>
+    <div class="list lock-list" id="account-list"></div>
+  </div>
+  <!-- 第二步：輸入密碼 -->
+  <div class="lock-step" id="lock-pin" hidden>
+    <div class="avatar lock-avatar" id="lock-avatar"></div>
+    <div class="lock-title" id="lock-name"></div>
+    <div class="lock-sub" id="lock-pin-sub">輸入密碼</div>
+    <div class="dots" id="pin-dots"><i></i><i></i><i></i><i></i></div>
+    <div class="lock-err" id="pin-err"></div>
+    <div class="keypad" id="keypad"></div>
+    <button class="head-link lock-switch" onclick="showAccountPicker()">切換帳號</button>
+  </div>
 </div>
 
 <header class="navbar" id="navbar">
@@ -416,15 +438,55 @@ button.cell:active { background: var(--cell-hl); transition: none; }
   </div>
 </div>
 
+<!-- 帳號管理（只有管理員） -->
+<div class="sheet" id="account-sheet" hidden>
+  <div class="sheet-backdrop" onclick="closeSheet('account-sheet')"></div>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="account-sheet-title">
+    <div class="sheet-nav">
+      <span></span>
+      <div class="sheet-title" id="account-sheet-title">帳號管理</div>
+      <button class="nav-text strong" onclick="closeSheet('account-sheet')">完成</button>
+    </div>
+    <div class="sheet-body">
+      <div class="group-caption">帳號</div>
+      <div class="form-group" id="account-rows"></div>
+      <div class="group-foot">每個帳號的案子、外包人員、稿費完全分開。重設密碼後請告訴同事新密碼，他登入後可在「⋯ → 更改密碼」自己改。</div>
+      <div class="group-caption">新增同事</div>
+      <div class="form-group">
+        <label class="form-row"><span class="fr-label wide">名字</span><input id="na-name" placeholder="例如 Neil" autocomplete="off"></label>
+        <label class="form-row"><span class="fr-label wide">初始密碼</span><input id="na-pin" class="pin-field" type="password" inputmode="numeric" maxlength="4" placeholder="4 位數字" autocomplete="new-password"></label>
+        <button type="button" class="form-row action" data-icon="circle-plus" onclick="addAccount()">新增帳號</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 更改自己的密碼 -->
+<div class="sheet stack" id="password-sheet" hidden>
+  <div class="sheet-backdrop" onclick="closeSheet('password-sheet')"></div>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="password-sheet-title">
+    <div class="sheet-nav">
+      <button class="nav-text" onclick="closeSheet('password-sheet')">取消</button>
+      <div class="sheet-title" id="password-sheet-title">更改密碼</div>
+      <button class="nav-text strong" onclick="changeMyPin()">儲存</button>
+    </div>
+    <div class="sheet-body">
+      <div class="form-group">
+        <label class="form-row"><span class="fr-label wide">目前密碼</span><input id="pw-old" class="pin-field" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password"></label>
+      </div>
+      <div class="form-group">
+        <label class="form-row"><span class="fr-label wide">新密碼</span><input id="pw-new" class="pin-field" type="password" inputmode="numeric" maxlength="4" placeholder="4 位數字" autocomplete="new-password"></label>
+        <label class="form-row"><span class="fr-label wide">再輸入一次</span><input id="pw-new2" class="pin-field" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></label>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- 動作表 -->
 <div class="asheet" id="actions" hidden>
   <div class="sheet-backdrop" onclick="closeActions()"></div>
   <div class="as-panel" role="dialog" aria-modal="true" aria-label="更多動作">
-    <div class="as-group">
-      <div class="as-title">廣編採訪排程</div>
-      <button class="as-btn" onclick="closeActions(exportAllICS)">匯出未來行程到行事曆</button>
-      <button class="as-btn" onclick="closeActions(exportBackup)">下載備份（JSON）</button>
-    </div>
+    <div class="as-group" id="as-group"></div>
     <button class="as-cancel" onclick="closeActions()">取消</button>
   </div>
 </div>
@@ -437,8 +499,9 @@ button.cell:active { background: var(--cell-hl); transition: none; }
 <script>
 // ── 設定 ──────────────────────────────────────────────────────
 const CONFIG = {
-  PIN: '3035',
+  PIN_LEN: 4,
   PATH: 'interview-crew',
+  CONTACTS_UID: 'nomo', // 只有這個帳號會讀客戶聯絡資訊當客戶名稱建議
   ROLES: ['記者', '攝影', '美編', '其他'],
   DUE_OFFSET: { '記者': 7, '攝影': 3, '美編': 10, '其他': 7 },
   INTERVIEW_HOURS: 2
@@ -560,7 +623,7 @@ function unlockScroll() {
   window.scrollTo(0, lockedY);
 }
 function anyOverlay() {
-  return !$('pin-screen').hidden || ['job-sheet', 'person-sheet', 'actions'].some(id => !$(id).hidden);
+  return !$('pin-screen').hidden || ['job-sheet', 'person-sheet', 'account-sheet', 'password-sheet', 'actions'].some(id => !$(id).hidden);
 }
 function showOverlay(id) {
   const el = $(id);
@@ -580,59 +643,162 @@ function hideOverlay(id, after) {
   }, REDUCED ? 0 : 330);
 }
 
-// ── 鎖定畫面 ──────────────────────────────────────────────────
-let pinBuf = '';
-function initPin() {
-  $('keypad').innerHTML = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map(k =>
-    k === '' ? '<span class="key blank"></span>'
-      : k === 'del' ? `<button class="key del" onclick="pinDel()" aria-label="刪除">${icon('delete')}</button>`
-      : `<button class="key" onclick="pinPress('${k}')">${k}</button>`).join('');
-  let ok = false;
-  try { ok = sessionStorage.getItem('ic_unlocked') === '1'; } catch (e) {}
-  if (ok) { $('pin-screen').hidden = true; return; }
+// ── 帳號與密碼 ────────────────────────────────────────────────
+// 帳號存在 interview-crew/accounts/{uid}：{ name, admin, salt, pinHash }，密碼只存雜湊不存明碼
+// 每個帳號的資料各自放在 interview-crew/users/{uid}/{people,jobs}
+let accounts = {}, me = null, pickedUid = null, pinBuf = '', unsubscribeData = null, accountsLoaded = false;
+async function hashPin(pin, salt) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${salt}:${pin}`));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function newSalt() {
+  const a = new Uint8Array(12);
+  crypto.getRandomValues(a);
+  return [...a].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+const validPin = p => new RegExp(`^\\d{${CONFIG.PIN_LEN}}$`).test(p);
+function ssGet(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+function ssSet(k, v) { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) {} }
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function sortedAccounts() {
+  return Object.entries(accounts).sort((a, b) => (b[1].admin === true) - (a[1].admin === true) || (a[1].name || '').localeCompare(b[1].name || '', 'zh-Hant'));
+}
+function initial(name) { return esc(String(name || '?').trim().slice(0, 1).toUpperCase()); }
+
+function showLock() {
   lockScroll();
+  $('pin-screen').hidden = false;
+  const last = lsGet('ic_last');
+  if (last && accounts[last]) showPinFor(last); else showAccountPicker();
+}
+function showAccountPicker() {
+  pickedUid = null; pinBuf = ''; renderDots();
+  $('lock-pin').hidden = true; $('lock-pick').hidden = false;
+  const list = sortedAccounts();
+  $('lock-pick-sub').textContent = accountsLoaded ? (list.length ? '選擇你的帳號' : '還沒有任何帳號') : '載入帳號中…';
+  $('account-list').innerHTML = list.map(([uid, a]) => `<button class="cell person-cell" onclick="showPinFor('${esc(uid)}')">
+      <span class="avatar">${initial(a.name)}</span><span class="cell-main"><span class="cell-title">${esc(a.name)}</span></span>${CHEV}</button>`).join('');
+  $('account-list').hidden = !list.length;
+}
+function showPinFor(uid) {
+  if (!accounts[uid]) return showAccountPicker();
+  pickedUid = uid; pinBuf = ''; renderDots();
+  $('pin-err').textContent = '';
+  $('lock-avatar').innerHTML = initial(accounts[uid].name);
+  $('lock-name').textContent = accounts[uid].name;
+  $('lock-pick').hidden = true; $('lock-pin').hidden = false;
 }
 function renderDots() { document.querySelectorAll('#pin-dots i').forEach((d, i) => d.classList.toggle('on', i < pinBuf.length)); }
 function pinPress(k) {
-  if (pinBuf.length >= CONFIG.PIN.length) return;
+  if (!pickedUid || pinBuf.length >= CONFIG.PIN_LEN) return;
   pinBuf += k; $('pin-err').textContent = ''; renderDots();
-  if (pinBuf.length === CONFIG.PIN.length) setTimeout(checkPin, 120);
+  if (pinBuf.length === CONFIG.PIN_LEN) setTimeout(checkPin, 120);
 }
 function pinDel() { pinBuf = pinBuf.slice(0, -1); renderDots(); }
-function checkPin() {
-  if (pinBuf === CONFIG.PIN) {
-    try { sessionStorage.setItem('ic_unlocked', '1'); } catch (err) {}
-    $('pin-screen').hidden = true;
-    pinBuf = '';
-    unlockScroll();
-  } else {
-    const dots = $('pin-dots');
-    dots.classList.remove('shake'); dots.getBoundingClientRect(); dots.classList.add('shake');
-    $('pin-err').textContent = '密碼錯誤';
-    if (navigator.vibrate && navigator.userActivation && navigator.userActivation.hasBeenActive) navigator.vibrate(80);
-    setTimeout(() => { pinBuf = ''; renderDots(); }, 380);
+async function checkPin() {
+  const acc = accounts[pickedUid];
+  if (acc && acc.pinHash === await hashPin(pinBuf, acc.salt)) return enter(pickedUid);
+  const dots = $('pin-dots');
+  dots.classList.remove('shake'); dots.getBoundingClientRect(); dots.classList.add('shake');
+  $('pin-err').textContent = '密碼錯誤';
+  if (navigator.vibrate && navigator.userActivation && navigator.userActivation.hasBeenActive) navigator.vibrate(80);
+  setTimeout(() => { pinBuf = ''; renderDots(); }, 380);
+}
+// 登入：換成這個帳號自己的資料
+function enter(uid) {
+  me = { uid, ...accounts[uid] };
+  ssSet('ic_session', uid); lsSet('ic_last', uid);
+  pinBuf = '';
+  if (unsubscribeData) unsubscribeData();
+  jobs = {}; people = {}; contactClients = []; ui.loaded = false; ui.sync = 'connecting'; ui.role = '全部'; ui.q = ''; $('q').value = '';
+  store = makeStore(uid);
+  $('pin-screen').hidden = true;
+  unlockScroll();
+  window.scrollTo(0, 0);
+  render();
+  unsubscribeData = store.subscribe(
+    data => { jobs = data; ui.loaded = true; renderClientList(); render(); },
+    data => { people = data; render(); },
+    setSync
+  );
+}
+function logout() {
+  if (unsubscribeData) unsubscribeData();
+  unsubscribeData = null; store = null; me = null;
+  jobs = {}; people = {};
+  ssSet('ic_session', null);
+  ['job-sheet', 'person-sheet', 'account-sheet', 'password-sheet', 'actions'].forEach(id => { $(id).hidden = true; $(id).classList.remove('show'); });
+  render();
+  showLock();
+}
+function onAccounts(data) {
+  accounts = data || {};
+  accountsLoaded = true;
+  if (me) {
+    if (!accounts[me.uid]) { toast('這個帳號已被移除'); return logout(); }
+    me = { uid: me.uid, ...accounts[me.uid] };
+    if (!$('account-sheet').hidden) renderAccountRows();
+    renderSub();
+    return;
   }
+  const session = ssGet('ic_session');
+  if (session && accounts[session]) return enter(session);
+  if (pickedUid && accounts[pickedUid]) return;
+  showLock();
 }
 
 // ── 資料層（Firebase／示範模式同一組介面）────────────────────────
-function firebaseStore() {
+let db = null, base = null;
+if (!DEMO) {
   firebase.initializeApp(FIREBASE);
-  const db = firebase.database();
-  const root = db.ref(CONFIG.PATH);
+  db = firebase.database();
+  base = db.ref(CONFIG.PATH);
+}
+const accountsApi = DEMO ? demoAccountsApi() : {
+  subscribe(cb) { base.child('accounts').on('value', s => cb(s.val()), err => { setSync('error', err); $('lock-pick-sub').textContent = '無法載入帳號，請檢查網路'; }); },
+  newId() { return base.child('accounts').push().key; },
+  save(uid, obj) { return base.child('accounts').child(uid).set(obj); },
+  remove(uid) { return base.child('accounts').child(uid).remove(); }
+};
+function makeStore(uid) { return DEMO ? demoStore() : firebaseStore(uid); }
+function firebaseStore(uid) {
+  const root = base.child('users').child(uid);
   return {
     subscribe(onJobs, onPeople, onStatus) {
-      root.child('jobs').on('value', s => { onJobs(s.val() || {}); onStatus('ok'); }, err => onStatus('error', err));
-      root.child('people').on('value', s => onPeople(s.val() || {}), err => onStatus('error', err));
-      db.ref('.info/connected').on('value', s => { if (ui.loaded) onStatus(s.val() ? 'ok' : 'offline'); });
-      db.ref('contacts').once('value')
-        .then(s => { contactClients = Object.values(s.val() || {}).map(c => c && c.company).filter(Boolean); renderClientList(); })
-        .catch(() => {});
+      const jobsRef = root.child('jobs'), peopleRef = root.child('people'), conn = db.ref('.info/connected');
+      const onJ = jobsRef.on('value', s => { onJobs(s.val() || {}); onStatus('ok'); }, err => onStatus('error', err));
+      const onP = peopleRef.on('value', s => onPeople(s.val() || {}), err => onStatus('error', err));
+      const onC = conn.on('value', s => { if (ui.loaded) onStatus(s.val() ? 'ok' : 'offline'); });
+      // 客戶名稱建議來自 Nomo 的客戶聯絡資訊，只給 Nomo 自己的帳號用
+      if (uid === CONFIG.CONTACTS_UID) {
+        db.ref('contacts').once('value')
+          .then(s => { if (me && me.uid === uid) { contactClients = Object.values(s.val() || {}).map(c => c && c.company).filter(Boolean); renderClientList(); } })
+          .catch(() => {});
+      }
+      return () => { jobsRef.off('value', onJ); peopleRef.off('value', onP); conn.off('value', onC); };
     },
     newId(kind) { return root.child(kind).push().key; },
     save(kind, id, obj) { return root.child(kind).child(id).set(obj); },
     remove(kind, id) { return root.child(kind).child(id).remove(); },
     // 交易寫入：案子已被其他裝置刪除就放棄，不會生出只有半個欄位的幽靈資料
     update(kind, id, fn) { return root.child(kind).child(id).transaction(cur => (cur ? fn(cur) : undefined)); }
+  };
+}
+// 示範模式：一個管理員帳號（密碼 0000），資料只存在這個分頁
+function demoAccountsApi() {
+  let data = {}, cb = null;
+  const emit = () => cb && cb(JSON.parse(JSON.stringify(data)));
+  return {
+    async subscribe(fn) {
+      cb = fn;
+      const salt = newSalt();
+      data = { demo: { name: '示範帳號', admin: true, salt, pinHash: await hashPin('0000', salt), createdAt: Date.now() } };
+      emit();
+    },
+    newId() { return `udemo${Date.now().toString(36)}`; },
+    save(uid, obj) { data[uid] = JSON.parse(JSON.stringify(obj)); emit(); return Promise.resolve(); },
+    remove(uid) { delete data[uid]; emit(); return Promise.resolve(); }
   };
 }
 function demoStore() {
@@ -646,6 +812,7 @@ function demoStore() {
       contactClients = ['A 金控', 'B 精品錶', 'C 百貨', 'D 能源', 'E 半導體'];
       renderClientList();
       emit(); onStatus('ok');
+      return () => { L = { onJobs() {}, onPeople() {} }; };
     },
     newId(kind) { return `${kind[0]}demo${Date.now().toString(36)}${seq++}`; },
     save(kind, id, obj) { data[kind][id] = JSON.parse(JSON.stringify(obj)); emit(); return Promise.resolve(); },
@@ -682,7 +849,7 @@ function demoSeed() {
   return { jobs: J, people: P };
 }
 
-const store = DEMO ? demoStore() : firebaseStore();
+let store = null; // 登入後才建立，指向該帳號自己的資料
 
 function setSync(status, err) {
   ui.sync = status;
@@ -701,7 +868,75 @@ function setSync(status, err) {
 function renderSub() {
   const st = { ok: '已同步', offline: '<span class="st-offline">離線中</span>', error: '<span class="st-error">同步失敗</span>' }[ui.sync] || '連線中…';
   const left = ui.tab === 'people' ? `${Object.keys(people).length} 位` : longDate(today());
-  $('lt-sub').innerHTML = `${esc(left)} · ${st}`;
+  $('lt-sub').innerHTML = `${me ? `${esc(me.name)} · ` : ''}${esc(left)} · ${st}`;
+}
+
+// ── 動作表、帳號管理、改密碼 ────────────────────────────────────
+function renderActions() {
+  const btns = [
+    ['exportAllICS', '匯出未來行程到行事曆'],
+    ['exportBackup', '下載備份（JSON）'],
+    ['openPasswordSheet', '更改密碼'],
+    ...(me && me.admin ? [['openAccountSheet', '帳號管理']] : []),
+    ['logout', '登出', 'danger']
+  ];
+  $('as-group').innerHTML = `<div class="as-title">${me ? `目前帳號：${esc(me.name)}` : '廣編採訪排程'}</div>` +
+    btns.map(([fn, label, cls]) => `<button class="as-btn${cls ? ` ${cls}` : ''}" onclick="closeActions(${fn})">${label}</button>`).join('');
+}
+function openAccountSheet() {
+  if (!me || !me.admin) return;
+  $('na-name').value = ''; $('na-pin').value = '';
+  renderAccountRows();
+  openSheet('account-sheet');
+}
+function renderAccountRows() {
+  $('account-rows').innerHTML = sortedAccounts().map(([uid, a]) => `<div class="form-row">
+      <span class="avatar" style="width:32px;height:32px;font-size:14px">${initial(a.name)}</span>
+      <span class="cell-main"><span class="cell-title">${esc(a.name)}${a.admin ? '<span class="admin-tag">管理員</span>' : ''}${uid === me.uid ? '<span class="admin-tag">你</span>' : ''}</span></span>
+      <button type="button" class="row-btn" onclick="resetPin('${esc(uid)}')">重設密碼</button>
+      ${uid === me.uid ? '' : `<button type="button" class="row-btn danger" onclick="deleteAccount('${esc(uid)}')">移除</button>`}
+    </div>`).join('');
+}
+async function addAccount() {
+  const name = $('na-name').value.trim(), pin = $('na-pin').value.trim();
+  if (!name) { toast('請填名字'); return $('na-name').focus(); }
+  if (Object.values(accounts).some(a => (a.name || '').toLowerCase() === name.toLowerCase())) { toast('已經有同名的帳號'); return; }
+  if (!validPin(pin)) { toast(`初始密碼要 ${CONFIG.PIN_LEN} 位數字`); return $('na-pin').focus(); }
+  const salt = newSalt();
+  const obj = { name, admin: false, salt, pinHash: await hashPin(pin, salt), createdAt: Date.now(), updatedAt: Date.now() };
+  accountsApi.save(accountsApi.newId(), obj).then(() => toast(`已新增 ${name}`)).catch(failed);
+  $('na-name').value = ''; $('na-pin').value = '';
+}
+async function resetPin(uid) {
+  const a = accounts[uid];
+  if (!a) return;
+  const pin = (prompt(`幫 ${a.name} 設一組新密碼（${CONFIG.PIN_LEN} 位數字）`) || '').trim();
+  if (!pin) return;
+  if (!validPin(pin)) return toast(`密碼要 ${CONFIG.PIN_LEN} 位數字`);
+  const salt = newSalt();
+  accountsApi.save(uid, { ...a, salt, pinHash: await hashPin(pin, salt), updatedAt: Date.now() })
+    .then(() => toast(`已重設 ${a.name} 的密碼`)).catch(failed);
+}
+function deleteAccount(uid) {
+  const a = accounts[uid];
+  if (!a || uid === me.uid) return;
+  if (!confirm(`移除 ${a.name} 的帳號？他將無法登入，但他的案子與人員資料會保留，之後重新建立同一個帳號無法自動接回。`)) return;
+  accountsApi.remove(uid).then(() => toast(`已移除 ${a.name}`)).catch(failed);
+}
+function openPasswordSheet() {
+  ['pw-old', 'pw-new', 'pw-new2'].forEach(id => { $(id).value = ''; });
+  openSheet('password-sheet');
+}
+async function changeMyPin() {
+  const a = accounts[me.uid];
+  const oldPin = $('pw-old').value.trim(), p1 = $('pw-new').value.trim(), p2 = $('pw-new2').value.trim();
+  if (!a || a.pinHash !== await hashPin(oldPin, a.salt)) { toast('目前密碼不對'); return $('pw-old').focus(); }
+  if (!validPin(p1)) { toast(`新密碼要 ${CONFIG.PIN_LEN} 位數字`); return $('pw-new').focus(); }
+  if (p1 !== p2) { toast('兩次輸入的新密碼不一樣'); return $('pw-new2').focus(); }
+  const salt = newSalt();
+  accountsApi.save(me.uid, { ...a, salt, pinHash: await hashPin(p1, salt), updatedAt: Date.now() })
+    .then(() => toast('密碼已更新')).catch(failed);
+  closeSheet('password-sheet');
 }
 
 // ── 分頁 ──────────────────────────────────────────────────────
@@ -962,7 +1197,7 @@ function closeSheet(id, after) {
   if (id === 'person-sheet') personCallback = null;
   hideOverlay(id, after);
 }
-function openActions() { showOverlay('actions'); }
+function openActions() { renderActions(); showOverlay('actions'); }
 function closeActions(then) { hideOverlay('actions', typeof then === 'function' ? then : null); }
 
 // ── 案子表單 ──────────────────────────────────────────────────
@@ -1255,27 +1490,33 @@ new IntersectionObserver(([e]) => $('navbar').classList.toggle('scrolled', !e.is
 
 document.addEventListener('keydown', e => {
   if (!$('pin-screen').hidden) {
+    if ($('lock-pin').hidden) return;
     if (/^[0-9]$/.test(e.key)) pinPress(e.key);
     else if (e.key === 'Backspace') pinDel();
+    else if (e.key === 'Escape') showAccountPicker();
     return;
   }
   if (e.key !== 'Escape') return;
-  if (!$('actions').hidden) closeActions();
-  else if (!$('person-sheet').hidden) closeSheet('person-sheet');
-  else if (!$('job-sheet').hidden) closeSheet('job-sheet');
+  const open = ['actions', 'password-sheet', 'person-sheet', 'account-sheet', 'job-sheet'].find(id => !$(id).hidden);
+  if (open === 'actions') closeActions(); else if (open) closeSheet(open);
 });
 window.addEventListener('hashchange', () => setTab(['people', 'fees'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'schedule'));
 // 跨過午夜自動重算分組
 setInterval(() => { const t = today(); if (t !== lastToday) { lastToday = t; render(); } }, 60 * 1000);
 
-initPin();
-if (DEMO) { $('demo-banner').innerHTML = `<span class="tile t-orange">${icon('info')}</span><div>示範模式：以下是假資料，所有修改只存在這個分頁，重新整理就會還原。</div>`; $('demo-banner').hidden = false; }
-store.subscribe(
-  data => { jobs = data; ui.loaded = true; renderClientList(); render(); },
-  data => { people = data; render(); },
-  setSync
-);
+// 鎖定畫面的數字鍵盤
+$('keypad').innerHTML = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map(k =>
+  k === '' ? '<span class="key blank"></span>'
+    : k === 'del' ? `<button class="key del" onclick="pinDel()" aria-label="刪除">${icon('delete')}</button>`
+    : `<button class="key" onclick="pinPress('${k}')">${k}</button>`).join('');
+if (DEMO) {
+  $('demo-banner').innerHTML = `<span class="tile t-orange">${icon('info')}</span><div>示範模式：以下是假資料，所有修改只存在這個分頁，重新整理就會還原。</div>`;
+  $('demo-banner').hidden = false;
+  $('lock-pin-sub').textContent = '示範模式密碼 0000';
+}
+lockScroll();
 setTab(['people', 'fees'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'schedule');
+accountsApi.subscribe(onAccounts);
 </script>
 </body>
 </html>
