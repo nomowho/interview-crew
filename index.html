@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F7F7F5">
+<title>廣編採訪排程</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #F7F7F5; --surface: #FFFFFF; --border: #E5E5E2; --line: #EFEFEC;
+  --text: #1A1A1A; --sub: #55554F; --muted: #8A8A85; --soft: #F2F2EF; --hover: #F6F6F3;
+  --red: #C2412D;    --red-bg: #FBECE8;
+  --orange: #B85C12; --orange-bg: #FCEFE2;
+  --amber: #8A6D0B;  --amber-bg: #F7F0D6;  --amber-bar: #D4AC2B;
+  --blue: #3A6584;   --blue-bg: #E8EFF4;
+  --green: #3C7349;  --green-bg: #E7F1E9;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.03);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,.16);
+  --radius: 12px;
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+}
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: 'Noto Sans TC', -apple-system, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.55; min-height: 100vh;
+}
+body.modal-open { overflow: hidden; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: none; }
+a { color: inherit; }
+.mono { font-family: var(--mono); font-feature-settings: 'tnum'; }
+[hidden] { display: none !important; }
+
+/* ── PIN ── */
+#pin-screen { position: fixed; inset: 0; z-index: 1000; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.pin-box { width: 100%; max-width: 280px; text-align: center; }
+.pin-box h1 { font-size: 20px; font-weight: 700; margin: 6px 0 24px; }
+#pin-input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); text-align: center; font-size: 20px; letter-spacing: 8px; outline: none; }
+#pin-input:focus { border-color: var(--text); }
+.pin-err { min-height: 18px; margin-top: 8px; color: var(--red); font-size: 12px; }
+
+/* ── Topbar ── */
+.topbar { position: sticky; top: 0; z-index: 50; background: rgba(247,247,245,.92); backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--border); padding-top: env(safe-area-inset-top); }
+.topbar-in { max-width: 1080px; margin: 0 auto; padding: 14px 20px 0; }
+.brand-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand h1 { font-size: 18px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+.eyebrow { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; white-space: nowrap; }
+.sync { width: 8px; height: 8px; border-radius: 50%; background: #C9C9C4; flex: none; }
+.sync.ok { background: #4CAF6A; } .sync.error { background: var(--red); } .sync.offline { background: #D9A23A; }
+.actions { display: flex; gap: 8px; flex: none; }
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); font-size: 13px; font-weight: 500; white-space: nowrap; transition: background .15s, border-color .15s; }
+.btn:hover { background: var(--hover); }
+.btn.primary { background: var(--text); border-color: var(--text); color: #fff; }
+.btn.primary:hover { background: #333; }
+.btn.danger { color: var(--red); border-color: #EBC9C2; }
+.btn.sm { height: 30px; padding: 0 12px; font-size: 12.5px; border-radius: 8px; }
+.tabs { display: flex; gap: 24px; margin-top: 10px; }
+.tab { padding: 8px 0 10px; border-bottom: 2px solid transparent; color: var(--muted); font-size: 14px; font-weight: 500; }
+.tab.active { color: var(--text); border-bottom-color: var(--text); }
+.tab .count { margin-left: 4px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+main { max-width: 1080px; margin: 0 auto; padding: 20px 20px 72px; }
+.banner { margin-bottom: 16px; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.6; }
+.banner.warn { background: var(--red-bg); color: var(--red); }
+.banner.demo { background: var(--amber-bg); color: var(--amber); }
+.banner code { font-family: var(--mono); font-size: 12px; }
+
+/* ── Chips ── */
+.chip { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 6px; background: var(--soft); color: var(--sub); font-size: 12px; font-weight: 500; white-space: nowrap; }
+.chip.overdue { background: var(--red-bg); color: var(--red); }
+.chip.today { background: var(--orange-bg); color: var(--orange); }
+.chip.soon { background: var(--amber-bg); color: var(--amber); }
+.chip.week { background: var(--blue-bg); color: var(--blue); }
+.chip.done { background: var(--green-bg); color: var(--green); }
+.chip.muted { background: transparent; color: var(--muted); border: 1px dashed #D5D5D0; }
+.role { display: inline-flex; justify-content: center; width: 42px; padding: 1px 0; border-radius: 5px; background: var(--soft); color: var(--sub); font-size: 11.5px; font-weight: 500; flex: none; }
+.role.r-記者 { background: #ECEFF6; color: #3E4A72; }
+.role.r-攝影 { background: #F3EEE6; color: #6E5434; }
+
+/* ── 今日提醒 ── */
+.today-box { margin-bottom: 24px; padding: 16px 18px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.today-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.today-head h2 { font-size: 15px; font-weight: 700; }
+.today-date { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.today-list { list-style: none; }
+.today-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
+.today-item:first-child { border-top: none; }
+.today-item:hover .ti-main { text-decoration: underline; text-underline-offset: 3px; }
+.today-item .chip { min-width: 78px; margin-top: 1px; flex: none; }
+.ti-main { font-size: 14px; font-weight: 500; }
+.ti-sub { margin-top: 1px; font-size: 12px; color: var(--muted); }
+.today-empty { padding: 6px 0 10px; color: var(--muted); font-size: 13px; }
+
+/* ── Toolbar ── */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 18px; }
+.search { flex: 1; min-width: 200px; height: 36px; padding: 0 12px 0 34px; border: 1px solid var(--border); border-radius: 9px; outline: none;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%238A8A85' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='6' cy='6' r='4.5'/%3E%3Cpath d='m9.5 9.5 3 3'/%3E%3C/svg%3E") no-repeat 12px center; }
+.search:focus { border-color: #BDBDB8; }
+.filters { display: flex; gap: 6px; }
+.filter { height: 30px; padding: 0 12px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); color: var(--sub); font-size: 12.5px; }
+.filter.active { background: var(--text); border-color: var(--text); color: #fff; }
+
+/* ── 分組 ── */
+.group { margin-bottom: 26px; }
+.group-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: var(--sub); font-size: 13px; font-weight: 700; letter-spacing: .04em; }
+.group-head .bar { width: 10px; height: 10px; border-radius: 3px; background: #D5D5D0; }
+.group-head .n { font-family: var(--mono); font-size: 12px; font-weight: 400; color: var(--muted); }
+.group-head .hint { font-size: 12px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+.g-overdue .bar { background: var(--red); } .g-today .bar { background: var(--orange); }
+.g-soon .bar { background: var(--amber-bar); } .g-week .bar { background: var(--blue); }
+.g-done .bar { background: var(--green); }
+.group-head.toggle { cursor: pointer; user-select: none; }
+.group-head .arrow { color: var(--muted); transition: transform .15s; }
+.group-head.open .arrow { transform: rotate(90deg); }
+
+/* ── 案子卡片 ── */
+.job { margin-bottom: 10px; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-left: 4px solid #D5D5D0; border-radius: var(--radius); box-shadow: var(--shadow); transition: box-shadow .3s; }
+.job.lv-overdue { border-left-color: var(--red); } .job.lv-today { border-left-color: var(--orange); }
+.job.lv-soon { border-left-color: var(--amber-bar); } .job.lv-week { border-left-color: var(--blue); }
+.job.lv-done { border-left-color: var(--green); }
+.job.lv-done .job-head, .job.lv-done .crew { opacity: .7; }
+.job.flash { box-shadow: 0 0 0 3px rgba(26,26,26,.2); }
+.job-head { display: flex; gap: 16px; padding: 14px 16px 12px; }
+.datebox { flex: none; width: 64px; padding-top: 2px; text-align: center; }
+.datebox .md { font-family: var(--mono); font-size: 20px; font-weight: 500; line-height: 1.15; }
+.datebox .wd { margin-top: 2px; font-size: 12px; color: var(--muted); }
+.datebox .tm { margin-top: 1px; font-family: var(--mono); font-size: 12px; color: var(--sub); }
+.datebox.none .md { color: #C9C9C4; }
+.job-main { flex: 1; min-width: 0; }
+.job-client { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 12.5px; color: var(--muted); }
+.job-client b { color: var(--sub); font-weight: 500; }
+.job-topic { margin: 3px 0 4px; font-size: 16px; font-weight: 700; line-height: 1.4; word-break: break-word; }
+.job-meta { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 12.5px; color: var(--sub); }
+.job-tools { display: flex; gap: 6px; flex: none; align-items: flex-start; }
+.icon-btn { height: 30px; min-width: 30px; padding: 0 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--sub); font-size: 12.5px; }
+.icon-btn:hover { background: var(--hover); color: var(--text); }
+
+.crew { list-style: none; border-top: 1px solid var(--line); }
+.crew-row { display: grid; grid-template-columns: 42px minmax(64px,1fr) 100px 112px 84px 64px; align-items: center; gap: 10px; padding: 9px 16px 9px 96px; border-top: 1px solid var(--line); font-size: 13px; }
+.crew-row:first-child { border-top: none; }
+.crew-row .name { overflow: hidden; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.crew-row .fee { font-family: var(--mono); color: var(--sub); text-align: right; }
+.crew-row .due { color: var(--sub); white-space: nowrap; }
+.crew-row .chip { justify-self: start; }
+.crew-row.is-done .name, .crew-row.is-done .fee, .crew-row.is-done .due { color: var(--muted); }
+.check { display: inline-flex; align-items: center; gap: 5px; justify-self: end; color: var(--sub); font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+.check input { width: 16px; height: 16px; accent-color: var(--green); cursor: pointer; }
+.crew-empty { padding: 9px 16px 10px 96px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12.5px; }
+.job-note { padding: 0 16px 12px 96px; color: var(--muted); font-size: 12.5px; white-space: pre-wrap; word-break: break-word; }
+
+.empty { padding: 48px 20px; text-align: center; color: var(--muted); }
+.empty h3 { margin-bottom: 6px; color: var(--sub); font-size: 15px; }
+.empty .btn { margin-top: 14px; }
+
+/* ── 人員 ── */
+.people { display: flex; flex-wrap: wrap; gap: 12px; }
+.person { width: calc((100% - 24px) / 3); padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.p-head { display: flex; align-items: center; gap: 8px; }
+.p-name { flex: 1; min-width: 0; overflow: hidden; font-size: 15px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.p-contact { display: flex; flex-direction: column; gap: 1px; margin-top: 8px; font-size: 12.5px; color: var(--sub); word-break: break-all; }
+.p-contact a { text-decoration: none; }
+.p-contact a:hover { text-decoration: underline; }
+.p-contact .k { display: inline-block; width: 38px; color: var(--muted); }
+.p-stats { display: flex; gap: 14px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+.p-stats b { color: var(--text); font-family: var(--mono); font-weight: 500; }
+.p-next { margin-top: 6px; font-size: 12.5px; color: var(--sub); }
+.p-note { margin-top: 6px; font-size: 12px; color: var(--muted); white-space: pre-wrap; }
+
+/* ── 稿費 ── */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 22px; }
+.stat { padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.stat .k { font-size: 12px; color: var(--muted); }
+.stat .v { margin-top: 2px; font-family: var(--mono); font-size: 22px; font-weight: 500; }
+.month { margin-bottom: 14px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.month-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.month-head h3 { font-size: 15px; font-weight: 700; }
+.month-head .cnt { font-size: 12px; color: var(--muted); }
+.month-head .sum { margin-left: auto; font-family: var(--mono); font-size: 17px; font-weight: 500; }
+.fee-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.fee-table td { padding: 7px 0; border-top: 1px solid var(--line); }
+.fee-table td.r { font-family: var(--mono); text-align: right; }
+.fee-table td.c { width: 60px; color: var(--muted); text-align: right; }
+.fee-table td.role-cell { width: 54px; }
+.month details { margin-top: 8px; }
+.month summary { color: var(--muted); font-size: 12.5px; cursor: pointer; }
+.month-jobs { list-style: none; margin-top: 6px; }
+.month-jobs li { display: flex; gap: 10px; padding: 6px 0; border-top: 1px dashed var(--line); font-size: 12.5px; color: var(--sub); }
+.month-jobs .d { flex: none; width: 74px; font-family: var(--mono); color: var(--muted); }
+.month-jobs .t { flex: 1; min-width: 0; }
+.month-jobs .s { flex: none; font-family: var(--mono); }
+
+/* ── Modal ── */
+.modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: flex-start; justify-content: center; padding: 6vh 16px 16px; overflow-y: auto; }
+.modal.stack { z-index: 300; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(20,20,18,.36); }
+.modal-card { position: relative; width: 100%; max-width: 680px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-lg); }
+.modal-card.narrow { max-width: 460px; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 0; }
+.modal-head h2 { font-size: 17px; font-weight: 700; }
+.x { width: 30px; height: 30px; border-radius: 8px; color: var(--muted); font-size: 20px; line-height: 1; }
+.x:hover { background: var(--hover); color: var(--text); }
+.modal-body { padding: 14px 20px 6px; }
+.modal-foot { display: flex; align-items: center; gap: 8px; padding: 14px 20px 18px; }
+.spacer { flex: 1; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+.f { display: flex; flex-direction: column; gap: 4px; }
+.f.full { grid-column: 1 / -1; }
+.f > span { font-size: 12px; font-weight: 500; color: var(--sub); }
+.f input, .f select, .f textarea, .ce-row input, .ce-row select { width: 100%; min-width: 0; height: 36px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); outline: none; font-size: 14px; }
+.f textarea { height: auto; padding: 8px 10px; resize: vertical; line-height: 1.5; }
+.f input:focus, .f select:focus, .f textarea:focus, .ce-row input:focus, .ce-row select:focus { border-color: #9F9F99; }
+.crew-editor { margin: 18px 0 14px; padding: 14px; background: var(--bg); border-radius: 12px; }
+.ce-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 10px; }
+.ce-title h3 { font-size: 14px; font-weight: 700; }
+.ce-title .hint { font-size: 12px; color: var(--muted); }
+.ce-cols, .ce-row { display: grid; grid-template-columns: minmax(0,1.5fr) 78px 96px 138px 58px 28px; align-items: center; gap: 8px; }
+.ce-cols { margin-bottom: 4px; padding: 0 2px; font-size: 11.5px; color: var(--muted); }
+.ce-row { margin-bottom: 8px; }
+.ce-cell { display: contents; }
+.ce-lbl { display: none; }
+.ce-row .ce-fee { font-family: var(--mono); }
+.ce-row .check { justify-self: start; }
+.ce-empty { padding: 4px 2px 10px; color: var(--muted); font-size: 12.5px; }
+
+#toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 900; max-width: calc(100% - 32px); padding: 10px 16px; border-radius: 10px; background: #1A1A1A; color: #fff; font-size: 13px; box-shadow: var(--shadow-lg); opacity: 0; pointer-events: none; transform: translate(-50%, 8px); transition: opacity .2s, transform .2s; }
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 860px) {
+  .person { width: calc((100% - 12px) / 2); }
+}
+@media (max-width: 640px) {
+  .topbar-in { padding: 12px 16px 0; }
+  .brand .eyebrow { display: none; }
+  .lbl { display: none; }
+  .btn { padding: 0 11px; }
+  main { padding: 16px 16px 72px; }
+  .today-box { padding: 14px 14px 6px; }
+  .today-item .chip { min-width: 70px; }
+  .job-head { gap: 12px; padding: 12px 14px 10px; }
+  .datebox { width: 46px; }
+  .datebox .md { font-size: 17px; }
+  .job-tools { flex-direction: column; }
+  .crew-row { grid-template-columns: 42px auto 1fr auto; grid-template-areas: "role name name check" ". fee due chip"; row-gap: 4px; padding: 10px 14px; }
+  .crew-row .role { grid-area: role; } .crew-row .name { grid-area: name; }
+  .crew-row .check { grid-area: check; } .crew-row .fee { grid-area: fee; text-align: left; }
+  .crew-row .due { grid-area: due; } .crew-row .chip { grid-area: chip; justify-self: end; }
+  .crew-empty, .job-note { padding-left: 14px; }
+  .person { width: 100%; }
+  .stats { grid-template-columns: 1fr 1fr; }
+  .stat:last-child { grid-column: 1 / -1; }
+  .modal { padding: 0; align-items: flex-start; }
+  .modal-card, .modal-card.narrow { max-width: none; min-height: 100%; border-radius: 0; }
+  .modal-head { position: sticky; top: 0; z-index: 2; padding: calc(14px + env(safe-area-inset-top)) 16px 10px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .modal-body { padding: 14px 16px 6px; }
+  .modal-foot { position: sticky; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--line); }
+  .form-grid { grid-template-columns: 1fr 1fr; }
+  .form-grid .f:not(.half) { grid-column: 1 / -1; }
+  .ce-cols { display: none; }
+  .ce-row { grid-template-columns: 1fr 1fr auto; grid-template-areas: "person person x" "role fee fee" "due due done"; padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  .ce-cell { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .ce-lbl { display: block; font-size: 11.5px; color: var(--muted); }
+  .ce-c-person { grid-area: person; } .ce-c-role { grid-area: role; } .ce-c-fee { grid-area: fee; }
+  .ce-c-due { grid-area: due; } .ce-row .check { grid-area: done; align-self: end; height: 36px; }
+  .ce-row .x { grid-area: x; align-self: start; }
+  .ce-row input, .ce-row select, .f input, .f select { font-size: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- PIN -->
+<div id="pin-screen">
+  <form class="pin-box" onsubmit="checkPin(event)">
+    <div class="eyebrow">Interview Crew</div>
+    <h1>廣編採訪排程</h1>
+    <input id="pin-input" type="password" inputmode="numeric" autocomplete="off" placeholder="••••" aria-label="密碼">
+    <div class="pin-err" id="pin-err"></div>
+  </form>
+</div>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand-row">
+      <div class="brand">
+        <span class="sync" id="sync-dot" title="連線中"></span>
+        <h1>廣編採訪排程</h1>
+        <span class="eyebrow">Interview Crew</span>
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="exportAllICS()" title="匯出未來所有採訪與交稿到行事曆">📅<span class="lbl">匯出行事曆</span></button>
+        <button class="btn" onclick="exportBackup()" title="下載 JSON 備份">⤓<span class="lbl">備份</span></button>
+        <button class="btn primary" id="btn-add" onclick="primaryAdd()">＋<span class="lbl" id="btn-add-lbl">新案子</span></button>
+      </div>
+    </div>
+    <nav class="tabs">
+      <button class="tab" data-tab="schedule" onclick="setTab('schedule')">排程<span class="count" id="cnt-schedule"></span></button>
+      <button class="tab" data-tab="people" onclick="setTab('people')">人員<span class="count" id="cnt-people"></span></button>
+      <button class="tab" data-tab="fees" onclick="setTab('fees')">稿費</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="banner demo" id="demo-banner" hidden>示範模式：以下是假資料，所有修改只存在這個分頁，重新整理就會還原。</div>
+  <div class="banner warn" id="sync-banner" hidden></div>
+
+  <section id="tab-schedule">
+    <div class="today-box" id="today-panel"></div>
+    <div class="toolbar">
+      <input class="search" id="q" type="search" placeholder="搜尋客戶、主題、受訪者、人員" oninput="ui.q = this.value; renderSchedule()">
+    </div>
+    <div id="groups"></div>
+  </section>
+
+  <section id="tab-people" hidden>
+    <div class="toolbar">
+      <div class="filters" id="role-filters"></div>
+    </div>
+    <div class="people" id="people-list"></div>
+  </section>
+
+  <section id="tab-fees" hidden>
+    <div class="stats" id="fee-stats"></div>
+    <div id="fee-months"></div>
+  </section>
+</main>
+
+<datalist id="client-list"></datalist>
+
+<!-- 案子表單 -->
+<div class="modal" id="job-modal" hidden>
+  <div class="modal-backdrop" onclick="closeModal('job-modal')"></div>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="job-modal-title">
+    <div class="modal-head">
+      <h2 id="job-modal-title">新案子</h2>
+      <button class="x" onclick="closeModal('job-modal')" aria-label="關閉">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <label class="f"><span>客戶</span><input id="j-client" list="client-list" placeholder="例：國泰世華銀行" autocomplete="off"></label>
+        <label class="f"><span>刊期／上線</span><input id="j-issue" placeholder="例：遠見 12 月號、線上 11/20"></label>
+        <label class="f full"><span>廣編主題</span><input id="j-topic" placeholder="例：永續金融 CEO 專訪"></label>
+        <label class="f"><span>受訪者</span><input id="j-interviewee" placeholder="姓名＋職稱"></label>
+        <label class="f"><span>採訪地點</span><input id="j-location" placeholder="例：客戶總部 18F"></label>
+        <label class="f half"><span>採訪日期</span><input id="j-date" type="date" onchange="onInterviewDateChange()"></label>
+        <label class="f half"><span>採訪時間</span><input id="j-time" type="time"></label>
+      </div>
+      <div class="crew-editor">
+        <div class="ce-title">
+          <h3>採訪團隊</h3>
+          <span class="hint">選人後自動帶入角色、預設稿費與交稿日（記者採訪後 7 天、攝影 3 天，可改）</span>
+        </div>
+        <div class="ce-cols"><span>人員</span><span>角色</span><span>稿費</span><span>交稿日</span><span></span><span></span></div>
+        <div id="crew-rows"></div>
+        <button type="button" class="btn sm" onclick="addCrewRow()">＋ 加一位</button>
+      </div>
+      <label class="f full"><span>備註</span><textarea id="j-note" rows="2" placeholder="聯絡窗口、注意事項…"></textarea></label>
+    </div>
+    <div class="modal-foot">
+      <button class="btn danger" id="j-delete" onclick="deleteJob()">刪除</button>
+      <span class="spacer"></span>
+      <button class="btn" onclick="closeModal('job-modal')">取消</button>
+      <button class="btn primary" onclick="saveJob()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 人員表單 -->
+<div class="modal stack" id="person-modal" hidden>
+  <div class="modal-backdrop" onclick="closeModal('person-modal')"></div>
+  <div class="modal-card narrow" role="dialog" aria-modal="true" aria-labelledby="person-modal-title">
+    <div class="modal-head">
+      <h2 id="person-modal-title">新增人員</h2>
+      <button class="x" onclick="closeModal('person-modal')" aria-label="關閉">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <label class="f half"><span>姓名</span><input id="p-name" autocomplete="off"></label>
+        <label class="f half"><span>角色</span><select id="p-role"></select></label>
+        <label class="f half"><span>電話</span><input id="p-phone" type="tel" autocomplete="off"></label>
+        <label class="f half"><span>預設稿費</span><input id="p-fee" type="number" inputmode="numeric" min="0" step="100" class="mono" placeholder="選填"></label>
+        <label class="f full"><span>Email</span><input id="p-email" type="email" autocomplete="off"></label>
+        <label class="f full"><span>LINE ID</span><input id="p-line" autocomplete="off"></label>
+        <label class="f full"><span>備註</span><textarea id="p-note" rows="2" placeholder="擅長題材、合作習慣…"></textarea></label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn danger" id="p-delete" onclick="deletePerson()">刪除</button>
+      <span class="spacer"></span>
+      <button class="btn" onclick="closeModal('person-modal')">取消</button>
+      <button class="btn primary" onclick="savePerson()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="core.js"></script>
+<script>
+// ── 設定 ──────────────────────────────────────────────────────
+const CONFIG = {
+  PIN: '3035',
+  PATH: 'interview-crew',
+  ROLES: ['記者', '攝影', '其他'],
+  DUE_OFFSET: { '記者': 7, '攝影': 3, '其他': 7 },
+  INTERVIEW_HOURS: 2
+};
+const FIREBASE = {
+  apiKey:            'AIzaSyB0nqFFS6-MIuWAM0XDnURRnxg57JZF5Sc',
+  authDomain:        'tennis-court-nomo.firebaseapp.com',
+  databaseURL:       'https://tennis-court-nomo-default-rtdb.asia-southeast1.firebasedatabase.app',
+  projectId:         'tennis-court-nomo',
+  storageBucket:     'tennis-court-nomo.firebasestorage.app',
+  messagingSenderId: '761622662336',
+  appId:             '1:761622662336:web:71f581dbaddf56b9287125'
+};
+const GROUPS = [
+  { key: 'overdue', label: '逾期',     hint: '交稿日已過、還沒交' },
+  { key: 'today',   label: '今天' },
+  { key: 'soon',    label: '3 天內' },
+  { key: 'week',    label: '7 天內' },
+  { key: 'later',   label: '之後' },
+  { key: 'nodate',  label: '待排日期', hint: '缺採訪日或交稿日' },
+  { key: 'done',    label: '已完成',   collapsible: true }
+];
+const C = window.CrewCore;
+const DEMO = new URLSearchParams(location.search).has('demo');
+
+// ── 狀態 ──────────────────────────────────────────────────────
+let jobs = {}, people = {}, contactClients = [];
+const ui = { tab: 'schedule', q: '', role: '全部', showDone: false, loaded: false };
+let editingJobId = null, editingPersonId = null, draftCrew = [], personCallback = null;
+let lastToday = C.todayTW();
+
+// ── 小工具 ────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ESC_MAP[c]); }
+function money(n) { return 'NT$' + Math.round(n || 0).toLocaleString('en-US'); }
+function today() { return C.todayTW(); }
+function roleClass(r) { return CONFIG.ROLES.includes(r) ? `r-${r}` : ''; }
+function personName(c) { return (c.personId && people[c.personId] && people[c.personId].name) || c.name || '（未指定）'; }
+// 人員改名後，案子裡顯示最新名字
+function entries() {
+  return Object.entries(jobs).map(([id, j]) => [id, {
+    ...j,
+    crew: C.crewOf(j).map(c => ({ ...c, name: personName(c), role: c.role || (people[c.personId] && people[c.personId].role) || '' }))
+  }]);
+}
+let toastTimer = null;
+function toast(msg, ms = 2400) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+}
+function failed(err) {
+  console.error(err);
+  const denied = err && /permission/i.test(String(err.code || err.message));
+  toast(denied ? '儲存失敗：Firebase 權限不足' : '儲存失敗，請檢查網路', 4000);
+}
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+function safeName(s) { return String(s || '').replace(/[\\/:*?"<>|\s]+/g, '_').slice(0, 40); }
+
+// ── PIN ───────────────────────────────────────────────────────
+function initPin() {
+  let ok = false;
+  try { ok = sessionStorage.getItem('ic_unlocked') === '1'; } catch (e) {}
+  if (ok) { $('pin-screen').hidden = true; return; }
+  document.body.classList.add('modal-open');
+  setTimeout(() => $('pin-input').focus(), 80);
+}
+function checkPin(e) {
+  if (e) e.preventDefault();
+  if ($('pin-input').value === CONFIG.PIN) {
+    try { sessionStorage.setItem('ic_unlocked', '1'); } catch (err) {}
+    $('pin-screen').hidden = true;
+    document.body.classList.remove('modal-open');
+  } else {
+    $('pin-err').textContent = '密碼錯誤，請再試一次';
+    $('pin-input').value = '';
+    $('pin-input').focus();
+  }
+}
+$('pin-input').addEventListener('input', e => { if (e.target.value.length === CONFIG.PIN.length) checkPin(); });
+
+// ── 資料層（Firebase／示範模式同一組介面）────────────────────────
+function firebaseStore() {
+  firebase.initializeApp(FIREBASE);
+  const db = firebase.database();
+  const root = db.ref(CONFIG.PATH);
+  return {
+    subscribe(onJobs, onPeople, onStatus) {
+      root.child('jobs').on('value', s => { onJobs(s.val() || {}); onStatus('ok'); }, err => onStatus('error', err));
+      root.child('people').on('value', s => onPeople(s.val() || {}), err => onStatus('error', err));
+      db.ref('.info/connected').on('value', s => { if (ui.loaded) onStatus(s.val() ? 'ok' : 'offline'); });
+      db.ref('contacts').once('value')
+        .then(s => { contactClients = Object.values(s.val() || {}).map(c => c && c.company).filter(Boolean); renderClientList(); })
+        .catch(() => {});
+    },
+    newId(kind) { return root.child(kind).push().key; },
+    save(kind, id, obj) { return root.child(kind).child(id).set(obj); },
+    remove(kind, id) { return root.child(kind).child(id).remove(); },
+    // 交易寫入：案子已被其他裝置刪除就放棄，不會生出只有半個欄位的幽靈資料
+    update(kind, id, fn) { return root.child(kind).child(id).transaction(cur => (cur ? fn(cur) : undefined)); }
+  };
+}
+function demoStore() {
+  const data = demoSeed();
+  let L = {};
+  const emit = () => { L.onJobs(JSON.parse(JSON.stringify(data.jobs))); L.onPeople(JSON.parse(JSON.stringify(data.people))); };
+  let seq = 0;
+  return {
+    subscribe(onJobs, onPeople, onStatus) {
+      L = { onJobs, onPeople };
+      contactClients = ['A 金控', 'B 精品錶', 'C 百貨', 'D 能源', 'E 半導體'];
+      renderClientList();
+      emit(); onStatus('ok');
+    },
+    newId(kind) { return `${kind[0]}demo${Date.now().toString(36)}${seq++}`; },
+    save(kind, id, obj) { data[kind][id] = JSON.parse(JSON.stringify(obj)); emit(); return Promise.resolve(); },
+    remove(kind, id) { delete data[kind][id]; emit(); return Promise.resolve(); },
+    update(kind, id, fn) {
+      const cur = data[kind][id];
+      if (!cur) return Promise.resolve({ committed: false });
+      data[kind][id] = fn(JSON.parse(JSON.stringify(cur)));
+      emit();
+      return Promise.resolve({ committed: true });
+    }
+  };
+}
+function demoSeed() {
+  const t = C.todayTW(), d = n => C.addDays(t, n);
+  const P = {
+    p1: { name: '林家安', role: '記者', phone: '0912-000-001', email: 'jiaan@example.com', line: '', defaultFee: 12000, note: '金融、永續題材熟' },
+    p2: { name: '張宇辰', role: '攝影', phone: '0912-000-002', email: '', line: 'yuchen.photo', defaultFee: 6000, note: '人像、空間' },
+    p3: { name: '陳品妤', role: '記者', phone: '0912-000-003', email: '', line: '', defaultFee: 10000, note: '' },
+    p4: { name: '黃柏翰', role: '攝影', phone: '', email: 'bohan@example.com', line: '', defaultFee: 5000, note: '' }
+  };
+  const m = (pid, fee, due, delivered = false) => ({ personId: pid, name: P[pid].name, role: P[pid].role, fee, dueDate: due, delivered });
+  const now = Date.now();
+  const J = {
+    j1: { client: 'A 金控', issue: '遠見 11 月號', topic: '永續金融 CEO 專訪', interviewee: '王執行長（示範）', location: '台北市信義區', interviewDate: d(1), interviewTime: '14:00', note: '', crew: [m('p1', 12000, d(8)), m('p2', 6000, d(4))] },
+    j2: { client: 'B 精品錶', issue: '線上廣編', topic: '製錶工藝與傳承', interviewee: '品牌總監（示範）', location: '台北 101', interviewDate: d(-9), interviewTime: '10:30', note: '', crew: [m('p3', 10000, d(-2)), m('p4', 5000, d(-6), true)] },
+    j3: { client: 'C 百貨', issue: '遠見 11 月號', topic: '週年慶與通路轉型', interviewee: '總經理（示範）', location: '信義新天地', interviewDate: t, interviewTime: '16:00', note: '受訪者只有 40 分鐘，攝影先到場架燈', crew: [m('p1', 12000, d(7)), m('p2', 6000, d(3))] },
+    j4: { client: 'A 金控', issue: '遠見 11 月號', topic: '高資產客戶的傳承規劃', interviewee: '私銀處長（示範）', location: '', interviewDate: d(-5), interviewTime: '15:00', note: '', crew: [m('p3', 10000, d(2)), m('p4', 5000, d(-1), true)] },
+    j5: { client: 'D 能源', issue: '遠見 12 月號', topic: '離岸風電的下一步', interviewee: '', location: '', interviewDate: d(16), interviewTime: '', note: '', crew: [m('p3', 10000, d(23))] },
+    j6: { client: 'E 半導體', issue: '遠見 10 月號', topic: '先進封裝的人才戰', interviewee: '副總經理（示範）', location: '新竹科學園區', interviewDate: d(-30), interviewTime: '09:30', note: '', crew: [m('p1', 12000, d(-23), true), m('p4', 5000, d(-27), true)] }
+  };
+  Object.values(J).forEach(j => { j.createdAt = now; j.updatedAt = now; });
+  return { jobs: J, people: P };
+}
+
+const store = DEMO ? demoStore() : firebaseStore();
+
+function setSync(status, err) {
+  const dot = $('sync-dot');
+  dot.className = 'sync ' + status;
+  dot.title = { ok: '已同步', offline: '離線中，恢復連線後會自動同步', error: '同步失敗' }[status] || '連線中';
+  const banner = $('sync-banner');
+  if (status === 'error') {
+    const denied = err && /permission/i.test(String(err.code || err.message));
+    banner.innerHTML = denied
+      ? `Firebase 還沒開放 <code>${CONFIG.PATH}</code> 節點的讀寫權限，資料無法讀取與儲存。請到 Firebase Console → Realtime Database → 規則，加上 <code>"${CONFIG.PATH}": { ".read": true, ".write": true }</code> 後發布。`
+      : '無法連上 Firebase，資料暫時無法同步。';
+    banner.hidden = false;
+  } else if (status === 'ok') {
+    banner.hidden = true;
+  }
+}
+
+// ── 分頁 ──────────────────────────────────────────────────────
+function setTab(tab) {
+  ui.tab = tab;
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  ['schedule', 'people', 'fees'].forEach(k => { $(`tab-${k}`).hidden = k !== tab; });
+  $('btn-add-lbl').textContent = tab === 'people' ? '新增人員' : '新案子';
+  if (location.hash.slice(1) !== tab) history.replaceState(null, '', tab === 'schedule' ? location.pathname + location.search : `#${tab}`);
+  render();
+}
+function primaryAdd() { ui.tab === 'people' ? openPerson() : openJob(); }
+
+function render() {
+  const t = today();
+  const active = Object.values(jobs).filter(j => C.jobStatus(j, t).group !== 'done').length;
+  $('cnt-schedule').textContent = active || '';
+  $('cnt-people').textContent = Object.keys(people).length || '';
+  if (ui.tab === 'schedule') renderSchedule();
+  else if (ui.tab === 'people') renderPeople();
+  else renderFees();
+}
+
+// ── 排程 ──────────────────────────────────────────────────────
+function chipFor(date, done, kind) {
+  if (done) return '<span class="chip done">✓ 已交</span>';
+  if (!C.isDate(date)) return `<span class="chip muted">${kind === 'interview' ? '未排日期' : '未填交稿日'}</span>`;
+  const d = C.diffDays(today(), date);
+  if (kind === 'interview') {
+    if (d < 0) return '<span class="chip">已採訪</span>';
+    if (d === 0) return '<span class="chip today">今天採訪</span>';
+    if (d === 1) return '<span class="chip soon">明天採訪</span>';
+    return `<span class="chip ${C.level(d)}">${d} 天後採訪</span>`;
+  }
+  if (d < 0) return `<span class="chip overdue">逾期 ${-d} 天</span>`;
+  if (d === 0) return '<span class="chip today">今天交稿</span>';
+  if (d === 1) return '<span class="chip soon">明天交稿</span>';
+  return `<span class="chip ${C.level(d)}">${d} 天後</span>`;
+}
+
+function renderToday(list) {
+  const t = today();
+  const items = C.reminderItems(list, t);
+  const body = items.length
+    ? `<ul class="today-list">${items.map(it => {
+        const what = [it.client, it.topic].filter(Boolean).join('｜');
+        if (it.kind === 'interview') {
+          const crew = it.crew.map(c => `${c.role} ${c.name}`).join('、');
+          const sub = [it.location && `📍 ${it.location}`, it.interviewee && `🎙 ${it.interviewee}`, crew].filter(Boolean).join(' · ');
+          return `<li class="today-item" onclick="focusJob('${esc(it.jobId)}')">
+            <span class="chip ${it.level}">${esc(it.label)}</span>
+            <div><div class="ti-main">${it.time ? `<span class="mono">${esc(it.time)}</span> ` : ''}${esc(what)}</div>
+            ${sub ? `<div class="ti-sub">${esc(sub)}</div>` : ''}</div></li>`;
+        }
+        return `<li class="today-item" onclick="focusJob('${esc(it.jobId)}')">
+          <span class="chip ${it.level}">${esc(it.label)}</span>
+          <div><div class="ti-main">${esc(it.name)}（${esc(it.role || '人員')}）交稿</div>
+          <div class="ti-sub">${esc(C.fmtDate(it.date))} · ${esc(what)}</div></div></li>`;
+      }).join('')}</ul>`
+    : '<div class="today-empty">今天沒有要追的採訪或交稿。</div>';
+  $('today-panel').innerHTML = `<div class="today-head"><h2>今日提醒</h2><span class="today-date">${esc(C.fmtDate(t))}</span></div>${body}`;
+}
+
+function matches(job, q) {
+  if (!q) return true;
+  const hay = [job.client, job.topic, job.issue, job.interviewee, job.location, job.note, ...job.crew.map(c => c.name)]
+    .filter(Boolean).join(' ').toLowerCase();
+  return q.split(/\s+/).every(w => hay.includes(w));
+}
+
+function jobCard(id, job, st) {
+  const crew = job.crew;
+  const hasDate = C.isDate(job.interviewDate);
+  const [, mm, dd] = hasDate ? job.interviewDate.split('-').map(Number) : [];
+  const datebox = hasDate
+    ? `<div class="datebox"><div class="md">${mm}/${dd}</div><div class="wd">週${C.weekday(job.interviewDate)}</div>${job.interviewTime ? `<div class="tm">${esc(job.interviewTime)}</div>` : ''}</div>`
+    : '<div class="datebox none"><div class="md">—</div><div class="wd">未排</div></div>';
+  const meta = [
+    job.interviewee ? `<span>🎙 ${esc(job.interviewee)}</span>` : '',
+    job.location ? `<span>📍 ${esc(job.location)}</span>` : ''
+  ].join('');
+  const rows = crew.length
+    ? `<ul class="crew">${crew.map((c, i) => `
+        <li class="crew-row${c.delivered ? ' is-done' : ''}">
+          <span class="role ${roleClass(c.role)}">${esc(c.role || '人員')}</span>
+          <span class="name">${esc(c.name)}</span>
+          <span class="fee">${c.fee ? money(c.fee) : '—'}</span>
+          <span class="due">${c.dueDate ? `交稿 ${esc(C.fmtDate(c.dueDate))}` : '交稿日未定'}</span>
+          ${chipFor(c.dueDate, c.delivered, 'due')}
+          <label class="check"><input type="checkbox" ${c.delivered ? 'checked' : ''} onchange="toggleDelivered('${esc(id)}', ${i}, this.checked)">已交</label>
+        </li>`).join('')}</ul>`
+    : '<div class="crew-empty">還沒指派記者或攝影</div>';
+  return `<article class="job lv-${st.group}" id="job-${esc(id)}">
+    <div class="job-head">
+      ${datebox}
+      <div class="job-main">
+        <div class="job-client">${hasDate ? chipFor(job.interviewDate, false, 'interview') : ''}${job.client ? `<b>${esc(job.client)}</b>` : ''}${job.issue ? `<span>${esc(job.issue)}</span>` : ''}</div>
+        <h3 class="job-topic">${esc(job.topic || '（未填主題）')}</h3>
+        ${meta ? `<div class="job-meta">${meta}</div>` : ''}
+      </div>
+      <div class="job-tools">
+        <button class="icon-btn" onclick="exportJobICS('${esc(id)}')" title="加到行事曆">📅</button>
+        <button class="icon-btn" onclick="openJob('${esc(id)}')">編輯</button>
+      </div>
+    </div>
+    ${rows}
+    ${job.note ? `<div class="job-note">${esc(job.note)}</div>` : ''}
+  </article>`;
+}
+
+function renderSchedule() {
+  const list = entries();
+  renderToday(list);
+  const t = today();
+  const q = ui.q.trim().toLowerCase();
+  const buckets = {};
+  list.filter(([, j]) => matches(j, q)).forEach(([id, job]) => {
+    const st = C.jobStatus(job, t);
+    (buckets[st.group] = buckets[st.group] || []).push({ id, job, st });
+  });
+  Object.entries(buckets).forEach(([g, arr]) => arr.sort((a, b) => g === 'done'
+    ? (b.job.interviewDate || '').localeCompare(a.job.interviewDate || '')
+    : a.st.nextDate.localeCompare(b.st.nextDate) || (a.st.next ? a.st.next.time : '').localeCompare(b.st.next ? b.st.next.time : '')));
+
+  if (!list.length) {
+    $('groups').innerHTML = ui.loaded ? `<div class="empty"><h3>還沒有案子</h3>
+      <p>先到「人員」建立記者與攝影名冊，再新增第一個廣編案。</p>
+      <button class="btn primary" onclick="openJob()">＋ 新案子</button></div>` : '<div class="empty">載入中…</div>';
+    return;
+  }
+  const html = GROUPS.map(g => {
+    const arr = buckets[g.key];
+    if (!arr || !arr.length) return '';
+    const open = !g.collapsible || ui.showDone || q;
+    const head = g.collapsible
+      ? `<div class="group-head toggle g-${g.key}${open ? ' open' : ''}" onclick="ui.showDone = !ui.showDone; renderSchedule()"><span class="bar"></span>${g.label}<span class="n">${arr.length}</span><span class="arrow">▸</span></div>`
+      : `<div class="group-head g-${g.key}"><span class="bar"></span>${g.label}<span class="n">${arr.length}</span>${g.hint ? `<span class="hint">${g.hint}</span>` : ''}</div>`;
+    return `<section class="group">${head}${open ? arr.map(r => jobCard(r.id, r.job, r.st)).join('') : ''}</section>`;
+  }).join('');
+  $('groups').innerHTML = html || `<div class="empty">找不到符合「${esc(ui.q)}」的案子</div>`;
+}
+
+function focusJob(id) {
+  const st = jobs[id] && C.jobStatus(jobs[id], today());
+  if (st && st.group === 'done' && !ui.showDone) { ui.showDone = true; renderSchedule(); }
+  const el = $(`job-${id}`);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 1600);
+}
+
+function toggleDelivered(id, i, val) {
+  store.update('jobs', id, cur => {
+    const crew = C.crewOf(cur);
+    if (!crew[i]) return cur;
+    crew[i] = { ...crew[i], delivered: !!val };
+    return { ...cur, crew, updatedAt: Date.now() };
+  }).then(r => {
+    if (r && r.committed === false) toast('這個案子已經被刪除了');
+    else toast(val ? '已標記交稿 ✓' : '已取消交稿標記');
+  }).catch(failed);
+}
+
+// ── 人員 ──────────────────────────────────────────────────────
+function personStats() {
+  const t = today(), s = {};
+  entries().forEach(([id, j]) => j.crew.forEach(c => {
+    if (!c.personId) return;
+    const st = s[c.personId] || (s[c.personId] = { count: 0, total: 0, next: null });
+    st.count += 1;
+    st.total += C.feeOf(c);
+    const cands = [];
+    if (C.isDate(j.interviewDate) && j.interviewDate >= t) cands.push({ date: j.interviewDate, label: '採訪', job: j, id });
+    if (!c.delivered && C.isDate(c.dueDate)) cands.push({ date: c.dueDate, label: c.dueDate < t ? '逾期未交稿' : '交稿', job: j, id });
+    cands.forEach(x => { if (!st.next || x.date < st.next.date) st.next = x; });
+  }));
+  return s;
+}
+
+function renderPeople() {
+  $('role-filters').innerHTML = ['全部', ...CONFIG.ROLES].map(r =>
+    `<button class="filter${ui.role === r ? ' active' : ''}" onclick="ui.role = '${r}'; renderPeople()">${r}</button>`).join('');
+  const stats = personStats();
+  const list = Object.entries(people)
+    .filter(([, p]) => ui.role === '全部' || p.role === ui.role)
+    .sort((a, b) => CONFIG.ROLES.indexOf(a[1].role) - CONFIG.ROLES.indexOf(b[1].role) || (a[1].name || '').localeCompare(b[1].name || '', 'zh-Hant'));
+  if (!list.length) {
+    $('people-list').innerHTML = `<div class="empty" style="width:100%"><h3>${Object.keys(people).length ? '這個分類還沒有人' : '名冊是空的'}</h3>
+      <p>把常合作的記者、攝影加進來，新增案子時就能直接選。</p>
+      <button class="btn primary" onclick="openPerson()">＋ 新增人員</button></div>`;
+    return;
+  }
+  $('people-list').innerHTML = list.map(([id, p]) => {
+    const st = stats[id] || { count: 0, total: 0, next: null };
+    const contact = [
+      p.phone ? `<span><span class="k">電話</span><a href="tel:${esc(p.phone.replace(/[^\d+]/g, ''))}">${esc(p.phone)}</a></span>` : '',
+      p.email ? `<span><span class="k">Email</span><a href="mailto:${esc(p.email)}">${esc(p.email)}</a></span>` : '',
+      p.line ? `<span><span class="k">LINE</span>${esc(p.line)}</span>` : '',
+      p.defaultFee ? `<span><span class="k">稿費</span><span class="mono">${money(p.defaultFee)}</span></span>` : ''
+    ].join('');
+    const next = st.next
+      ? `<div class="p-next">下一個：${esc(C.fmtDate(st.next.date))} ${esc(st.next.label)}｜${esc([st.next.job.client, st.next.job.topic].filter(Boolean).join(' '))}</div>`
+      : '';
+    return `<div class="person">
+      <div class="p-head"><span class="role ${roleClass(p.role)}">${esc(p.role || '其他')}</span><span class="p-name">${esc(p.name)}</span>
+        <button class="icon-btn" onclick="openPerson('${esc(id)}')">編輯</button></div>
+      ${contact ? `<div class="p-contact">${contact}</div>` : ''}
+      <div class="p-stats"><span>合作 <b>${st.count}</b> 案</span><span>累計 <b>${money(st.total)}</b></span></div>
+      ${next}
+      ${p.note ? `<div class="p-note">${esc(p.note)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── 稿費 ──────────────────────────────────────────────────────
+function monthLabel(key) {
+  if (key === 'none') return '未排採訪日';
+  const [y, m] = key.split('-').map(Number);
+  return `${y} 年 ${m} 月`;
+}
+function renderFees() {
+  const months = C.monthlyFees(entries());
+  const t = today(), thisMonth = t.slice(0, 7), thisYear = t.slice(0, 4);
+  const cur = months.find(m => m.month === thisMonth);
+  const yearMonths = months.filter(m => m.month.startsWith(thisYear));
+  const yearTotal = yearMonths.reduce((s, m) => s + m.total, 0);
+  const yearJobs = yearMonths.reduce((s, m) => s + m.jobs.length, 0);
+  $('fee-stats').innerHTML = `
+    <div class="stat"><div class="k">本月稿費</div><div class="v">${money(cur ? cur.total : 0)}</div></div>
+    <div class="stat"><div class="k">${thisYear} 年累計</div><div class="v">${money(yearTotal)}</div></div>
+    <div class="stat"><div class="k">${thisYear} 年案件數</div><div class="v">${yearJobs}</div></div>`;
+  if (!months.length) { $('fee-months').innerHTML = '<div class="empty">還沒有稿費紀錄</div>'; return; }
+  $('fee-months').innerHTML = months.map(m => `
+    <section class="month">
+      <div class="month-head"><h3>${monthLabel(m.month)}</h3><span class="cnt">${m.jobs.length} 案</span><span class="sum">${money(m.total)}</span></div>
+      <table class="fee-table"><tbody>
+        ${m.people.map(p => `<tr>
+          <td class="role-cell"><span class="role ${roleClass(p.role)}">${esc(p.role || '人員')}</span></td>
+          <td>${esc(p.name)}</td><td class="c">${p.count} 件</td><td class="r">${money(p.total)}</td></tr>`).join('')}
+      </tbody></table>
+      <details><summary>案件明細</summary><ul class="month-jobs">
+        ${m.jobs.map(({ id, job, total }) => `<li>
+          <span class="d">${job.interviewDate ? esc(C.fmtDate(job.interviewDate)) : '—'}</span>
+          <span class="t">${esc([job.client, job.topic].filter(Boolean).join('｜') || '（未命名）')}<br>
+            <span style="color:var(--muted)">${job.crew.map(c => `${esc(c.role)} ${esc(c.name)} ${c.fee ? money(c.fee) : '—'}`).join(' · ')}</span></span>
+          <span class="s">${money(total)}</span></li>`).join('')}
+      </ul></details>
+    </section>`).join('');
+}
+
+// ── 案子表單 ──────────────────────────────────────────────────
+function openModal(id) { $(id).hidden = false; document.body.classList.add('modal-open'); }
+function closeModal(id) {
+  $(id).hidden = true;
+  if (id === 'person-modal') personCallback = null;
+  if ($('job-modal').hidden && $('person-modal').hidden) document.body.classList.remove('modal-open');
+}
+
+function openJob(id) {
+  editingJobId = id || null;
+  const j = id ? jobs[id] : {};
+  if (id && !j) return toast('找不到這個案子');
+  $('job-modal-title').textContent = id ? '編輯案子' : '新案子';
+  $('j-client').value = j.client || '';
+  $('j-issue').value = j.issue || '';
+  $('j-topic').value = j.topic || '';
+  $('j-interviewee').value = j.interviewee || '';
+  $('j-location').value = j.location || '';
+  $('j-date').value = j.interviewDate || '';
+  $('j-time').value = j.interviewTime || '';
+  $('j-note').value = j.note || '';
+  $('j-delete').hidden = !id;
+  draftCrew = id
+    ? C.crewOf(j).map(c => ({ personId: c.personId || '', name: c.name || '', role: c.role || '', fee: c.fee || '', dueDate: c.dueDate || '', delivered: !!c.delivered }))
+    : [blankCrew('記者'), blankCrew('攝影')];
+  renderCrewEditor();
+  openModal('job-modal');
+  if (!id) setTimeout(() => $('j-client').focus(), 50);
+}
+function blankCrew(role) { return { personId: '', name: '', role: role || '記者', fee: '', dueDate: '', delivered: false }; }
+
+function personOptions(selected, fallbackName) {
+  const byRole = {};
+  Object.entries(people).forEach(([id, p]) => { (byRole[p.role || '其他'] = byRole[p.role || '其他'] || []).push([id, p]); });
+  let html = '<option value="">選擇人員…</option>';
+  [...CONFIG.ROLES, ...Object.keys(byRole).filter(r => !CONFIG.ROLES.includes(r))].forEach(r => {
+    const arr = (byRole[r] || []).sort((a, b) => (a[1].name || '').localeCompare(b[1].name || '', 'zh-Hant'));
+    if (arr.length) html += `<optgroup label="${esc(r)}">${arr.map(([id, p]) => `<option value="${esc(id)}"${id === selected ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>`;
+  });
+  if (selected && !people[selected]) html += `<option value="${esc(selected)}" selected>${esc(fallbackName || '已刪除的人員')}（已不在名冊）</option>`;
+  return html + '<option value="__new__">＋ 新增人員…</option>';
+}
+
+function renderCrewEditor() {
+  $('crew-rows').innerHTML = draftCrew.length ? draftCrew.map((c, i) => `
+    <div class="ce-row" data-i="${i}">
+      <label class="ce-cell ce-c-person"><span class="ce-lbl">人員</span><select class="ce-person" onchange="onCrewPerson(${i}, this)">${personOptions(c.personId, c.name)}</select></label>
+      <label class="ce-cell ce-c-role"><span class="ce-lbl">角色</span><select class="ce-role">${CONFIG.ROLES.map(r => `<option${r === c.role ? ' selected' : ''}>${r}</option>`).join('')}</select></label>
+      <label class="ce-cell ce-c-fee"><span class="ce-lbl">稿費</span><input class="ce-fee" type="number" inputmode="numeric" min="0" step="100" placeholder="稿費" value="${esc(c.fee)}"></label>
+      <label class="ce-cell ce-c-due"><span class="ce-lbl">交稿日</span><input class="ce-due" type="date" value="${esc(c.dueDate)}"></label>
+      <label class="check"><input type="checkbox" class="ce-done"${c.delivered ? ' checked' : ''}>已交</label>
+      <button type="button" class="x" onclick="removeCrewRow(${i})" aria-label="移除">×</button>
+    </div>`).join('') : '<div class="ce-empty">還沒有成員，按下方「加一位」。</div>';
+}
+function readCrewFromDOM() {
+  document.querySelectorAll('#crew-rows .ce-row').forEach(row => {
+    const c = draftCrew[Number(row.dataset.i)];
+    if (!c) return;
+    const sel = row.querySelector('.ce-person').value;
+    if (sel !== '__new__') c.personId = sel;
+    c.role = row.querySelector('.ce-role').value;
+    c.fee = row.querySelector('.ce-fee').value;
+    c.dueDate = row.querySelector('.ce-due').value;
+    c.delivered = row.querySelector('.ce-done').checked;
+  });
+}
+function addCrewRow() { readCrewFromDOM(); draftCrew.push(blankCrew(draftCrew.some(c => c.role === '攝影') ? '記者' : '攝影')); renderCrewEditor(); }
+function removeCrewRow(i) { readCrewFromDOM(); draftCrew.splice(i, 1); renderCrewEditor(); }
+function suggestDue(role) {
+  const d = $('j-date').value;
+  return C.isDate(d) ? C.addDays(d, CONFIG.DUE_OFFSET[role] || 7) : '';
+}
+function applyPersonDefaults(i) {
+  const c = draftCrew[i], p = people[c.personId];
+  if (!p) return;
+  c.name = p.name;
+  if (p.role) c.role = p.role;
+  if (!c.fee && p.defaultFee) c.fee = p.defaultFee;
+  if (!c.dueDate) c.dueDate = suggestDue(c.role);
+}
+function onCrewPerson(i, sel) {
+  if (sel.value === '__new__') {
+    readCrewFromDOM();
+    sel.value = draftCrew[i].personId || '';
+    openPerson(null, draftCrew[i].role, newId => {
+      readCrewFromDOM();
+      draftCrew[i].personId = newId;
+      applyPersonDefaults(i);
+      renderCrewEditor();
+    });
+    return;
+  }
+  readCrewFromDOM();
+  applyPersonDefaults(i);
+  renderCrewEditor();
+}
+function onInterviewDateChange() {
+  readCrewFromDOM();
+  draftCrew.forEach(c => { if (c.personId && !c.dueDate) c.dueDate = suggestDue(c.role); });
+  renderCrewEditor();
+}
+
+function saveJob() {
+  readCrewFromDOM();
+  const v = id => $(id).value.trim();
+  const client = v('j-client'), topic = v('j-topic');
+  if (!client && !topic) { toast('客戶或主題至少填一項'); $('j-client').focus(); return; }
+  const crew = [];
+  for (let i = 0; i < draftCrew.length; i++) {
+    const c = draftCrew[i];
+    if (!c.personId) {
+      if (c.fee || c.dueDate || c.delivered) { toast(`第 ${i + 1} 位還沒選人員`); return; }
+      continue;
+    }
+    crew.push({
+      personId: c.personId,
+      name: (people[c.personId] && people[c.personId].name) || c.name || '',
+      role: c.role || '記者',
+      fee: Math.max(0, Number(c.fee) || 0),
+      dueDate: C.isDate(c.dueDate) ? c.dueDate : '',
+      delivered: !!c.delivered
+    });
+  }
+  const prev = editingJobId ? jobs[editingJobId] : null;
+  const id = editingJobId || store.newId('jobs');
+  const date = v('j-date'), time = v('j-time');
+  const obj = {
+    client, topic,
+    issue: v('j-issue'), interviewee: v('j-interviewee'), location: v('j-location'),
+    interviewDate: C.isDate(date) ? date : '', interviewTime: C.isTime(time) ? time : '',
+    note: $('j-note').value.trim(),
+    crew,
+    createdAt: (prev && prev.createdAt) || Date.now(),
+    updatedAt: Date.now()
+  };
+  store.save('jobs', id, obj).catch(failed);
+  closeModal('job-modal');
+  toast(editingJobId ? '已更新' : '已新增案子');
+  setTimeout(() => focusJob(id), 60);
+}
+function deleteJob() {
+  if (!editingJobId) return;
+  const j = jobs[editingJobId] || {};
+  if (!confirm(`確定刪除「${[j.client, j.topic].filter(Boolean).join(' ') || '這個案子'}」？刪除後無法復原。`)) return;
+  store.remove('jobs', editingJobId).catch(failed);
+  closeModal('job-modal');
+  toast('已刪除');
+}
+
+// ── 人員表單 ──────────────────────────────────────────────────
+function openPerson(id, presetRole, cb) {
+  editingPersonId = id || null;
+  personCallback = cb || null;
+  const p = id ? people[id] : {};
+  if (id && !p) return toast('找不到這位人員');
+  $('person-modal-title').textContent = id ? '編輯人員' : '新增人員';
+  $('p-role').innerHTML = CONFIG.ROLES.map(r => `<option${r === (p.role || presetRole || '記者') ? ' selected' : ''}>${r}</option>`).join('');
+  $('p-name').value = p.name || '';
+  $('p-phone').value = p.phone || '';
+  $('p-fee').value = p.defaultFee || '';
+  $('p-email').value = p.email || '';
+  $('p-line').value = p.line || '';
+  $('p-note').value = p.note || '';
+  $('p-delete').hidden = !id;
+  openModal('person-modal');
+  setTimeout(() => $('p-name').focus(), 50);
+}
+function savePerson() {
+  const name = $('p-name').value.trim();
+  if (!name) { toast('請填姓名'); $('p-name').focus(); return; }
+  const id = editingPersonId || store.newId('people');
+  const prev = editingPersonId ? people[editingPersonId] : null;
+  const obj = {
+    name, role: $('p-role').value,
+    phone: $('p-phone').value.trim(), email: $('p-email').value.trim(), line: $('p-line').value.trim(),
+    defaultFee: Math.max(0, Number($('p-fee').value) || 0),
+    note: $('p-note').value.trim(),
+    createdAt: (prev && prev.createdAt) || Date.now(),
+    updatedAt: Date.now()
+  };
+  people[id] = obj; // 先更新本地，讓案子表單的下拉選單立刻選得到
+  store.save('people', id, obj).catch(failed);
+  const cb = personCallback;
+  closeModal('person-modal');
+  toast(editingPersonId ? '已更新人員' : `已新增 ${name}`);
+  if (cb) cb(id);
+  render();
+}
+function deletePerson() {
+  if (!editingPersonId) return;
+  const p = people[editingPersonId] || {};
+  const used = Object.values(jobs).filter(j => C.crewOf(j).some(c => c.personId === editingPersonId)).length;
+  const msg = used
+    ? `${p.name} 已排進 ${used} 個案子。刪除後案子裡仍保留名字與稿費，只是不在名冊裡。確定刪除？`
+    : `確定刪除 ${p.name}？`;
+  if (!confirm(msg)) return;
+  store.remove('people', editingPersonId).catch(failed);
+  closeModal('person-modal');
+  toast('已刪除');
+}
+
+// ── 匯出 ──────────────────────────────────────────────────────
+function exportAllICS() {
+  const { text, count } = C.buildICS(entries(), { from: today(), interviewHours: CONFIG.INTERVIEW_HOURS });
+  if (!count) return toast('沒有未來的採訪或交稿可以匯出');
+  download(`採訪排程_${today()}.ics`, text, 'text/calendar;charset=utf-8');
+  toast(`已匯出 ${count} 個行程，用 Outlook 開啟這個檔案即可加入行事曆`, 4000);
+}
+function exportJobICS(id) {
+  const e = entries().find(([k]) => k === id);
+  if (!e) return;
+  const { text, count } = C.buildICS([e], { interviewHours: CONFIG.INTERVIEW_HOURS });
+  if (!count) return toast('這個案子沒有可以加入行事曆的日期');
+  download(`採訪_${safeName(e[1].client || e[1].topic)}_${e[1].interviewDate || today()}.ics`, text, 'text/calendar;charset=utf-8');
+  toast(`已下載 ${count} 個行程（採訪＋未交稿）`);
+}
+function exportBackup() {
+  const data = { app: 'interview-crew', exportedAt: new Date().toISOString(), people, jobs };
+  download(`interview-crew-backup_${today()}.json`, JSON.stringify(data, null, 2), 'application/json');
+  toast('已下載備份');
+}
+function renderClientList() {
+  const names = new Set([...contactClients, ...Object.values(jobs).map(j => j.client).filter(Boolean)]);
+  $('client-list').innerHTML = [...names].sort((a, b) => a.localeCompare(b, 'zh-Hant')).map(n => `<option value="${esc(n)}">`).join('');
+}
+
+// ── 啟動 ──────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!$('person-modal').hidden) closeModal('person-modal');
+  else if (!$('job-modal').hidden) closeModal('job-modal');
+});
+window.addEventListener('hashchange', () => setTab(['people', 'fees'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'schedule'));
+// 跨過午夜自動重算分組
+setInterval(() => { const t = today(); if (t !== lastToday) { lastToday = t; render(); } }, 60 * 1000);
+
+initPin();
+if (DEMO) $('demo-banner').hidden = false;
+store.subscribe(
+  data => { jobs = data; ui.loaded = true; renderClientList(); render(); },
+  data => { people = data; render(); },
+  setSync
+);
+setTab(['people', 'fees'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'schedule');
+</script>
+</body>
+</html>

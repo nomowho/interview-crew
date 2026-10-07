@@ -1,0 +1,236 @@
+/*
+ * 廣編採訪排程 — 核心邏輯（網頁、LINE 推播 Worker、日報共用同一份）
+ * 一律以台灣時區（Asia/Taipei）判斷「今天」，Worker 跑在 UTC 也不會差一天。
+ * 日期格式固定 'YYYY-MM-DD'，時間 'HH:MM'。
+ */
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.CrewCore = api;
+})(typeof self !== 'undefined' ? self : this, function () {
+  const TZ = 'Asia/Taipei';
+  const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
+  const LEVEL_ORDER = { overdue: 0, today: 1, soon: 2, week: 3, later: 4 };
+
+  // ── 日期工具 ───────────────────────────────────────────────
+  function todayTW(now = new Date()) {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(now);
+  }
+  function isDate(s) { return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s); }
+  function isTime(s) { return typeof s === 'string' && /^\d{2}:\d{2}$/.test(s); }
+  function dayNum(s) {
+    const [y, m, d] = s.split('-').map(Number);
+    return Math.round(Date.UTC(y, m - 1, d) / 86400000);
+  }
+  function diffDays(from, to) { return dayNum(to) - dayNum(from); }
+  function addDays(s, n) { return new Date((dayNum(s) + n) * 86400000).toISOString().slice(0, 10); }
+  function weekday(s) { return WEEK[new Date(dayNum(s) * 86400000).getUTCDay()]; }
+  function fmtDate(s) {
+    if (!isDate(s)) return '';
+    const [, m, d] = s.split('-').map(Number);
+    return `${m}/${d}（${weekday(s)}）`;
+  }
+  function level(diff) {
+    if (diff < 0) return 'overdue';
+    if (diff === 0) return 'today';
+    if (diff <= 3) return 'soon';
+    if (diff <= 7) return 'week';
+    return 'later';
+  }
+
+  // ── 資料正規化 ─────────────────────────────────────────────
+  // Firebase 會把陣列存成 {0:…,1:…}，讀回來可能是物件，這裡統一轉成陣列
+  function crewOf(job) {
+    if (!job || !job.crew) return [];
+    const list = Array.isArray(job.crew) ? job.crew : Object.values(job.crew);
+    return list.filter(Boolean);
+  }
+  function feeOf(c) {
+    const n = Number(c && c.fee);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }
+
+  // ── 單一案子狀態 ───────────────────────────────────────────
+  // 採訪日已過＝採訪完成；交稿以「已交」勾選為準
+  function jobStatus(job, today) {
+    const crew = crewOf(job);
+    const pending = [];
+    if (isDate(job.interviewDate) && diffDays(today, job.interviewDate) >= 0) {
+      pending.push({ kind: 'interview', date: job.interviewDate, time: job.interviewTime || '' });
+    }
+    crew.forEach((c, i) => {
+      if (!c.delivered && isDate(c.dueDate)) {
+        pending.push({ kind: 'due', date: c.dueDate, time: '', crewIndex: i });
+      }
+    });
+    const missingDue = crew.some(c => !c.delivered && !isDate(c.dueDate));
+    const overdue = pending.filter(e => e.kind === 'due' && diffDays(today, e.date) < 0).length;
+
+    if (!pending.length) {
+      const hasAnyDate = isDate(job.interviewDate) || crew.some(c => isDate(c.dueDate));
+      if (missingDue || !hasAnyDate) return { group: 'nodate', nextDate: '', next: null, overdue: 0, missingDue };
+      return { group: 'done', nextDate: '', next: null, overdue: 0, missingDue: false };
+    }
+    pending.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+    const next = pending[0];
+    return { group: level(diffDays(today, next.date)), nextDate: next.date, next, overdue, missingDue };
+  }
+
+  // ── 今日提醒清單（網頁頂部、LINE、日報共用）─────────────────
+  // 採訪：今天、明天；交稿：逾期、今天、2 天內
+  function reminderItems(entries, today) {
+    const items = [];
+    entries.forEach(([id, job]) => {
+      if (!job) return;
+      const base = { jobId: id, client: job.client || '', topic: job.topic || '' };
+      if (isDate(job.interviewDate)) {
+        const d = diffDays(today, job.interviewDate);
+        if (d === 0 || d === 1) {
+          items.push({
+            ...base, kind: 'interview', diff: d, level: d === 0 ? 'today' : 'soon',
+            date: job.interviewDate, time: job.interviewTime || '',
+            location: job.location || '', interviewee: job.interviewee || '',
+            label: d === 0 ? '今天採訪' : '明天採訪',
+            crew: crewOf(job).map(c => ({ name: c.name || '', role: c.role || '' }))
+          });
+        }
+      }
+      crewOf(job).forEach((c, i) => {
+        if (c.delivered || !isDate(c.dueDate)) return;
+        const d = diffDays(today, c.dueDate);
+        if (d > 2) return;
+        items.push({
+          ...base, kind: 'due', diff: d, level: d < 0 ? 'overdue' : d === 0 ? 'today' : 'soon',
+          date: c.dueDate, time: '', crewIndex: i, name: c.name || '', role: c.role || '',
+          label: d < 0 ? `逾期 ${-d} 天` : d === 0 ? '今天交稿' : `${d} 天後交稿`
+        });
+      });
+    });
+    return items.sort((a, b) =>
+      LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level] ||
+      a.date.localeCompare(b.date) ||
+      (a.kind === 'interview' ? 0 : 1) - (b.kind === 'interview' ? 0 : 1) ||
+      a.time.localeCompare(b.time));
+  }
+
+  // ── 稿費：依採訪日歸月 ─────────────────────────────────────
+  function monthlyFees(entries) {
+    const months = {};
+    entries.forEach(([id, job]) => {
+      if (!job) return;
+      const key = isDate(job.interviewDate) ? job.interviewDate.slice(0, 7) : 'none';
+      const m = months[key] || (months[key] = { month: key, total: 0, jobs: [], people: {} });
+      const crew = crewOf(job);
+      const jobTotal = crew.reduce((s, c) => s + feeOf(c), 0);
+      m.total += jobTotal;
+      m.jobs.push({ id, job, total: jobTotal });
+      crew.forEach(c => {
+        const k = c.personId || `name:${c.name || ''}`;
+        const p = m.people[k] || (m.people[k] = { key: k, personId: c.personId || '', name: c.name || '', role: c.role || '', count: 0, total: 0 });
+        p.count += 1;
+        p.total += feeOf(c);
+      });
+    });
+    return Object.values(months)
+      .map(m => ({
+        ...m,
+        jobs: m.jobs.sort((a, b) => (a.job.interviewDate || '').localeCompare(b.job.interviewDate || '')),
+        people: Object.values(m.people).sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
+      }))
+      .sort((a, b) => (a.month === 'none') - (b.month === 'none') || b.month.localeCompare(a.month));
+  }
+
+  // ── 行事曆 .ics ───────────────────────────────────────────
+  function icsEscape(s) {
+    return String(s == null ? '' : s)
+      .replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+  }
+  function utf8len(ch) {
+    const cp = ch.codePointAt(0);
+    return cp < 0x80 ? 1 : cp < 0x800 ? 2 : cp < 0x10000 ? 3 : 4;
+  }
+  // RFC 5545：每行最多 75 bytes，中文一字 3 bytes，要依位元組切不能依字數切
+  function foldLine(line) {
+    const out = [];
+    let cur = '', bytes = 0;
+    for (const ch of line) {
+      const b = utf8len(ch);
+      if (bytes + b > 75) { out.push(cur); cur = ' ' + ch; bytes = 1 + b; }
+      else { cur += ch; bytes += b; }
+    }
+    out.push(cur);
+    return out.join('\r\n');
+  }
+  // 台灣時間（UTC+8，無夏令時間）→ UTC 時間戳
+  function twToUTC(date, time, plusHours = 0) {
+    const [y, m, d] = date.split('-').map(Number);
+    const [hh, mm] = time.split(':').map(Number);
+    const t = Date.UTC(y, m - 1, d, hh - 8 + plusHours, mm);
+    return new Date(t).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  }
+  function stamp(now) { return now.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''); }
+  function compact(date) { return date.replace(/-/g, ''); }
+
+  function buildICS(entries, opts = {}) {
+    const now = opts.now || new Date();
+    const from = opts.from || '';
+    const hours = opts.interviewHours || 2;
+    const L = [
+      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//nomowho//interview-crew//ZH-TW',
+      'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:廣編採訪排程', 'X-WR-TIMEZONE:Asia/Taipei'
+    ];
+    const pushEvent = ({ uid, date, time, summary, location, description, alarm }) => {
+      L.push('BEGIN:VEVENT', `UID:${uid}`, `DTSTAMP:${stamp(now)}`);
+      if (isTime(time)) {
+        L.push(`DTSTART:${twToUTC(date, time)}`, `DTEND:${twToUTC(date, time, hours)}`);
+      } else {
+        L.push(`DTSTART;VALUE=DATE:${compact(date)}`, `DTEND;VALUE=DATE:${compact(addDays(date, 1))}`);
+      }
+      L.push(`SUMMARY:${icsEscape(summary)}`);
+      if (location) L.push(`LOCATION:${icsEscape(location)}`);
+      if (description) L.push(`DESCRIPTION:${icsEscape(description)}`);
+      L.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsEscape(summary)}`, `TRIGGER:${alarm}`, 'END:VALARM');
+      L.push('END:VEVENT');
+    };
+
+    let count = 0;
+    entries.forEach(([id, job]) => {
+      if (!job) return;
+      const crew = crewOf(job);
+      const title = [job.client, job.topic].filter(Boolean).join(' ') || '廣編採訪';
+      if (isDate(job.interviewDate) && (!from || job.interviewDate >= from)) {
+        const desc = [
+          job.interviewee ? `受訪者：${job.interviewee}` : '',
+          ...crew.map(c => `${c.role || '人員'}：${c.name || ''}${c.dueDate ? `（交稿 ${fmtDate(c.dueDate)}）` : ''}`),
+          job.note ? `備註：${job.note}` : ''
+        ].filter(Boolean).join('\n');
+        pushEvent({
+          uid: `${id}-interview@interview-crew.nomowho`, date: job.interviewDate, time: job.interviewTime,
+          summary: `採訪｜${title}`, location: job.location || '', description: desc,
+          alarm: isTime(job.interviewTime) ? '-P1D' : '-PT15H'
+        });
+        count++;
+      }
+      crew.forEach((c, i) => {
+        if (c.delivered || !isDate(c.dueDate) || (from && c.dueDate < from)) return;
+        pushEvent({
+          uid: `${id}-due-${c.personId || i}@interview-crew.nomowho`, date: c.dueDate, time: '',
+          summary: `交稿｜${c.name || ''}（${c.role || '人員'}）${title}`,
+          description: job.interviewDate ? `採訪日：${fmtDate(job.interviewDate)}` : '',
+          alarm: '-PT15H'
+        });
+        count++;
+      });
+    });
+    L.push('END:VCALENDAR');
+    return { text: L.map(foldLine).join('\r\n') + '\r\n', count };
+  }
+
+  return {
+    TZ, todayTW, isDate, isTime, diffDays, addDays, weekday, fmtDate, level,
+    crewOf, feeOf, jobStatus, reminderItems, monthlyFees,
+    icsEscape, foldLine, twToUTC, buildICS
+  };
+});
