@@ -448,6 +448,34 @@ button.cell:active { background: var(--cell-hl); transition: none; }
   </div>
 </div>
 
+<!-- iPhone 寄採訪邀請：iPhone 行事曆＋貼上 Email -->
+<div class="sheet stack" id="invite-sheet" hidden>
+  <div class="sheet-backdrop" onclick="closeSheet('invite-sheet')"></div>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="invite-sheet-title">
+    <div class="sheet-nav">
+      <span></span>
+      <div class="sheet-title" id="invite-sheet-title">寄採訪邀請</div>
+      <button class="nav-text strong" onclick="closeSheet('invite-sheet')">完成</button>
+    </div>
+    <div class="sheet-body">
+      <div class="group-caption">邀請對象</div>
+      <div class="form-group" id="iv-people"></div>
+      <div class="group-caption">步驟</div>
+      <div class="form-group">
+        <button type="button" class="form-row action" onclick="iosAddToCalendar()"><span class="tile t-blue" style="width:26px;height:26px;border-radius:13px;font-size:15px;font-weight:600">1</span>複製 Email 並加入行事曆</button>
+        <a class="form-row action" id="iv-calshow" href="calshow:"><span class="tile t-blue" style="width:26px;height:26px;border-radius:13px;font-size:15px;font-weight:600">2</span>打開行事曆（跳到採訪當天）</a>
+        <button type="button" class="form-row action" id="iv-copy" onclick="copyEmailsAgain()"><span class="tile t-gray" style="width:26px;height:26px;border-radius:13px" data-icon="check"></span>再複製一次 Email</button>
+      </div>
+      <div class="group-foot">按 1：iPhone 會顯示這個採訪行程，點「加入」。<br>按 2：打開行事曆後點這個行程 →「編輯」→「邀請對象」→ 長按「貼上」→「完成」，iPhone 就會寄出邀請。<br>行程說明不含稿費。</div>
+      <div id="iv-emails-wrap" hidden>
+        <div class="group-caption">Email（自動複製失敗時長按複製）</div>
+        <div class="form-group"><div class="form-row" id="iv-emails" style="user-select:text;-webkit-user-select:text;overflow-wrap:anywhere"></div></div>
+      </div>
+      <div class="form-group"><button type="button" class="form-row action" data-icon="send" onclick="openOutlookInvite()">改用 Outlook 網頁版寄出</button></div>
+    </div>
+  </div>
+</div>
+
 <!-- 帳號管理（只有管理員） -->
 <div class="sheet" id="account-sheet" hidden>
   <div class="sheet-backdrop" onclick="closeSheet('account-sheet')"></div>
@@ -633,7 +661,7 @@ function unlockScroll() {
   window.scrollTo(0, lockedY);
 }
 function anyOverlay() {
-  return !$('pin-screen').hidden || ['job-sheet', 'person-sheet', 'account-sheet', 'password-sheet', 'actions'].some(id => !$(id).hidden);
+  return !$('pin-screen').hidden || ['job-sheet', 'person-sheet', 'account-sheet', 'password-sheet', 'invite-sheet', 'actions'].some(id => !$(id).hidden);
 }
 function showOverlay(id) {
   const el = $(id);
@@ -738,7 +766,7 @@ function logout() {
   unsubscribeData = null; store = null; me = null;
   jobs = {}; people = {};
   ssSet('ic_session', null);
-  ['job-sheet', 'person-sheet', 'account-sheet', 'password-sheet', 'actions'].forEach(id => { $(id).hidden = true; $(id).classList.remove('show'); });
+  ['job-sheet', 'person-sheet', 'account-sheet', 'password-sheet', 'invite-sheet', 'actions'].forEach(id => { $(id).hidden = true; $(id).classList.remove('show'); });
   render();
   showLock();
 }
@@ -1482,27 +1510,68 @@ function exportJobICS(id) {
   toast(`已下載 ${count} 個行程`);
 }
 // 用表單上「目前看到的內容」產生邀請（不必先儲存）；沒 Email 的人開完後提醒另外通知
-function sendInvite() {
+// iPhone／iPad（含 iPadOS 偽裝成 Mac 的情況）
+const IS_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+// 用表單上「目前看到的內容」組出案子（不必先儲存）
+function formJob() {
   readCrewFromDOM();
   const v = id => $(id).value.trim();
-  const job = {
+  return {
     client: v('j-client'), topic: v('j-topic'), issue: v('j-issue'), interviewee: v('j-interviewee'), location: v('j-location'),
-    interviewDate: v('j-date'), interviewTime: v('j-time'), note: $('j-note').value.trim(),
+    interviewDate: v('j-date'), interviewTime: v('j-time'), note: $('j-note').value.trim(), noInterview: !hasInterview(),
     crew: draftCrew.filter(c => c.personId).map(c => {
       const p = people[c.personId] || {};
       return { name: p.name || c.name, role: c.role, dueDate: c.dueDate, email: p.email || '' };
     })
   };
-  if (!hasInterview()) return toast('免採訪的案子不用寄採訪邀請');
+}
+let inviteJob = null;
+// 電腦：開 Outlook 網頁版；iPhone：開說明面板，走「iPhone 行事曆＋貼上 Email」
+function sendInvite() {
+  const job = formJob();
+  if (job.noInterview) return toast('免採訪的案子不用寄採訪邀請');
   if (!C.isDate(job.interviewDate)) return toast('請先填採訪日期');
   if (!job.crew.length) return toast('請先選好成員');
-  const inv = C.buildInvite(job, { interviewHours: CONFIG.INTERVIEW_HOURS });
+  if (IS_IOS) return openIosInvite(job);
+  openOutlookInvite(job);
+}
+function openOutlookInvite(job) {
+  const inv = C.buildInvite(job || inviteJob, { interviewHours: CONFIG.INTERVIEW_HOURS });
   // 要在點擊當下直接開新分頁，先跳確認框的話 Safari 會擋彈出視窗
   window.open(inv.url, '_blank', 'noopener');
   if (!inv.attendees.length) toast('成員都還沒填 Email，邀請裡沒有與會者', 4500);
   else if (inv.missing.length) toast(`${inv.missing.map(m => m.name).join('、')} 沒有 Email，記得另外通知`, 4500);
   else toast(`已帶入 ${inv.attendees.length} 位與會者，到 Outlook 確認後按傳送`, 3500);
 }
+function openIosInvite(job) {
+  inviteJob = job;
+  const inv = C.buildInvite(job);
+  const rows = [
+    ...inv.attendees.map(a => `<div class="form-row"><span class="cell-main"><span class="cell-title">${esc(a.name)}<span class="admin-tag">${esc(a.role)}</span></span><span class="cell-sub">${esc(a.email)}</span></span></div>`),
+    ...inv.missing.map(m => `<div class="form-row"><span class="cell-main"><span class="cell-title">${esc(m.name)}<span class="admin-tag">${esc(m.role)}</span></span><span class="cell-sub lv-overdue">沒有 Email，請另外通知</span></span></div>`)
+  ].join('');
+  $('iv-people').innerHTML = rows;
+  $('iv-copy').hidden = !inv.attendees.length;
+  $('iv-calshow').href = C.calshowURL(job.interviewDate, job.interviewTime);
+  $('iv-emails').textContent = inv.attendees.map(a => a.email).join(', ');
+  $('iv-emails-wrap').hidden = true;
+  openSheet('invite-sheet');
+}
+async function copyEmails() {
+  const emails = $('iv-emails').textContent;
+  if (!emails) return false;
+  try { await navigator.clipboard.writeText(emails); return true; }
+  catch (e) { $('iv-emails-wrap').hidden = false; return false; } // 複製失敗就把 Email 秀出來讓人手動複製
+}
+// 第 1 步：Email 放剪貼簿＋把採訪行程交給 iPhone（Safari 會跳出「加入行事曆」）
+function iosAddToCalendar() {
+  const { text, error } = C.buildInviteICS(editingJobId, inviteJob, { interviewHours: CONFIG.INTERVIEW_HOURS });
+  if (error) return toast('請先填採訪日期');
+  const url = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(text);
+  copyEmails().then(ok => toast(ok ? 'Email 已複製，點「加入」把行程存進行事曆' : '點「加入」把行程存進行事曆', 4000));
+  window.location.href = url; // 不能等複製完才開，Safari 只允許在點擊當下開
+}
+async function copyEmailsAgain() { toast((await copyEmails()) ? 'Email 已複製' : '請長按下方 Email 手動複製'); }
 function exportBackup() {
   const data = { app: 'interview-crew', exportedAt: new Date().toISOString(), people, jobs };
   download(`interview-crew-backup_${today()}.json`, JSON.stringify(data, null, 2), 'application/json');
@@ -1530,7 +1599,7 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (e.key !== 'Escape') return;
-  const open = ['actions', 'password-sheet', 'person-sheet', 'account-sheet', 'job-sheet'].find(id => !$(id).hidden);
+  const open = ['actions', 'invite-sheet', 'password-sheet', 'person-sheet', 'account-sheet', 'job-sheet'].find(id => !$(id).hidden);
   if (open === 'actions') closeActions(); else if (open) closeSheet(open);
 });
 window.addEventListener('hashchange', () => setTab(['people', 'fees'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'schedule'));

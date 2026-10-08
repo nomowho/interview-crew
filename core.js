@@ -296,8 +296,55 @@
     return { url: `${OUTLOOK_COMPOSE}?path=/calendar/action/compose&rru=addevent&${query}`, attendees, missing };
   }
 
+  // ── iPhone 行事曆邀請 ────────────────────────────────────────
+  // 網頁無法替 iPhone 行事曆填「邀請對象」，所以只產生「採訪」這一個行程讓使用者加入，
+  // Email 另外放剪貼簿，由使用者在行事曆的「邀請對象」貼上後 iPhone 才會寄出邀請
+  function inviteText(job) {
+    const crew = crewOf(job);
+    const info = [
+      job.client && `客戶：${job.client}`,
+      job.topic && `主題：${job.topic}`,
+      job.interviewee && `受訪者：${job.interviewee}`,
+      job.issue && `刊期：${job.issue}`,
+      job.location && `地點：${job.location}`
+    ].filter(Boolean).join('\n');
+    const team = crew.length
+      ? ['採訪團隊', ...crew.map(c => `${c.role || '人員'}　${c.name || ''}${isDate(c.dueDate) ? `（交稿 ${fmtDate(c.dueDate)}）` : ''}`)].join('\n')
+      : '';
+    // 稿費一律不放：受邀者都看得到這段說明
+    return [info, team, job.note ? `備註：${job.note}` : ''].filter(Boolean).join('\n\n');
+  }
+  function buildInviteICS(id, job, opts = {}) {
+    if (job.noInterview) return { error: 'nointerview' };
+    if (!isDate(job.interviewDate)) return { error: 'nodate' };
+    const now = opts.now || new Date();
+    const hours = opts.interviewHours || 2;
+    const title = [job.client, job.topic].filter(Boolean).join(' ') || '廣編採訪';
+    const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//nomowho//interview-crew//ZH-TW', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+      'BEGIN:VEVENT', `UID:${id || 'new'}-interview@interview-crew.nomowho`, `DTSTAMP:${stamp(now)}`];
+    if (isTime(job.interviewTime)) {
+      L.push(`DTSTART:${twToUTC(job.interviewDate, job.interviewTime)}`, `DTEND:${twToUTC(job.interviewDate, job.interviewTime, hours)}`);
+    } else {
+      L.push(`DTSTART;VALUE=DATE:${compact(job.interviewDate)}`, `DTEND;VALUE=DATE:${compact(addDays(job.interviewDate, 1))}`);
+    }
+    L.push(`SUMMARY:${icsEscape(`採訪｜${title}`)}`);
+    if (job.location) L.push(`LOCATION:${icsEscape(job.location)}`);
+    const desc = inviteText(job);
+    if (desc) L.push(`DESCRIPTION:${icsEscape(desc)}`);
+    L.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsEscape(`採訪｜${title}`)}`, `TRIGGER:${isTime(job.interviewTime) ? '-P1D' : '-PT15H'}`, 'END:VALARM',
+      'END:VEVENT', 'END:VCALENDAR');
+    return { text: L.map(foldLine).join('\r\n') + '\r\n' };
+  }
+  // iPhone 行事曆的 calshow: 網址，數字是從 2001-01-01 UTC 起算的秒數，會直接跳到那一天
+  function calshowURL(date, time) {
+    if (!isDate(date)) return 'calshow:';
+    const [y, m, d] = date.split('-').map(Number);
+    const [hh, mm] = isTime(time) ? time.split(':').map(Number) : [9, 0];
+    return `calshow:${Math.round((Date.UTC(y, m - 1, d, hh - 8, mm) - Date.UTC(2001, 0, 1)) / 1000)}`;
+  }
+
   return {
-    TZ, todayTW, isDate, isTime, diffDays, addDays, weekday, fmtDate, level,
+    TZ, todayTW, isDate, isTime, diffDays, addDays, weekday, fmtDate, level, inviteText, buildInviteICS, calshowURL,
     crewOf, feeOf, interviewOf, anchorDate, jobStatus, reminderItems, monthlyFees,
     icsEscape, foldLine, twToUTC, buildICS, twToISO, buildInvite
   };
