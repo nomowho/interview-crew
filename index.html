@@ -386,6 +386,7 @@ button.cell:active { background: var(--cell-hl); transition: none; }
       <div class="form-group">
         <label class="form-row"><span class="fr-label">客戶</span><input id="j-client" list="client-list" placeholder="國泰世華銀行" autocomplete="off"></label>
         <label class="form-row"><span class="fr-label">刊期</span><input id="j-issue" placeholder="遠見 12 月號、線上 11/20"></label>
+        <label class="form-row"><span class="fr-label wide">原生廣編</span><span class="switch"><input type="checkbox" role="switch" id="j-native" aria-label="原生廣編" onchange="onToggleNative()"><span class="track"></span></span></label>
       </div>
       <div class="form-group">
         <label class="form-row"><span class="fr-label">主題</span><input id="j-topic" placeholder="永續金融 CEO 專訪"></label>
@@ -431,14 +432,16 @@ button.cell:active { background: var(--cell-hl); transition: none; }
       <div class="form-group">
         <label class="form-row"><span class="fr-label">姓名</span><input id="p-name" placeholder="必填" autocomplete="off"></label>
         <div class="form-row seg-row"><div class="seg" id="p-role-seg" role="radiogroup" aria-label="角色"></div></div>
+        <label class="form-row" id="p-native-row"><span class="fr-label wide">原生寫手</span><span class="switch"><input type="checkbox" role="switch" id="p-native" aria-label="原生寫手"><span class="track"></span></span></label>
       </div>
+      <div class="group-foot" id="p-native-hint">原生數位廣編只能排原生寫手。</div>
       <div class="form-group">
         <label class="form-row"><span class="fr-label">電話</span><input id="p-phone" type="tel" placeholder="0912-345-678" autocomplete="off"></label>
         <label class="form-row"><span class="fr-label">Email</span><input id="p-email" type="email" placeholder="name@example.com" autocomplete="off"></label>
         <label class="form-row"><span class="fr-label">LINE</span><input id="p-line" placeholder="LINE ID" autocomplete="off"></label>
       </div>
       <div class="form-group">
-        <label class="form-row"><span class="fr-label">預設稿費</span><span class="money">NT$</span><input id="p-fee" type="number" inputmode="numeric" min="0" step="100" placeholder="選填"></label>
+        <label class="form-row"><span class="fr-label wide">預設稿費</span><span class="money">NT$</span><input id="p-fee" type="number" inputmode="numeric" min="0" step="100" placeholder="選填"></label>
       </div>
       <div class="group-caption">備註</div>
       <div class="form-group"><div class="form-row"><textarea id="p-note" placeholder="擅長題材、合作習慣…"></textarea></div></div>
@@ -869,7 +872,7 @@ function demoSeed() {
   const P = {
     p1: { name: '林家安', role: '記者', phone: '0912-000-001', email: 'jiaan@example.com', line: '', defaultFee: 12000, note: '金融、永續題材熟' },
     p2: { name: '張宇辰', role: '攝影', phone: '0912-000-002', email: '', line: 'yuchen.photo', defaultFee: 6000, note: '人像、空間' },
-    p3: { name: '陳品妤', role: '記者', phone: '0912-000-003', email: '', line: '', defaultFee: 10000, note: '' },
+    p3: { name: '陳品妤', role: '記者', nativeWriter: true, phone: '0912-000-003', email: '', line: '', defaultFee: 10000, note: '' },
     p4: { name: '黃柏翰', role: '攝影', phone: '', email: 'bohan@example.com', line: '', defaultFee: 5000, note: '' },
     p5: { name: '周以晴', role: '美編', phone: '', email: '', line: '', defaultFee: 8000, note: '' }
   };
@@ -877,7 +880,7 @@ function demoSeed() {
   const now = Date.now();
   const J = {
     j1: { client: 'A 金控', issue: '遠見 11 月號', topic: '永續金融 CEO 專訪', interviewee: '王執行長（示範）', location: '台北市信義區', interviewDate: d(1), interviewTime: '14:00', note: '', crew: [m('p1', 12000, d(8)), m('p2', 6000, d(4)), m('p5', 8000, d(11))] },
-    j2: { client: 'B 精品錶', issue: '線上廣編', topic: '製錶工藝與傳承', interviewee: '品牌總監（示範）', location: '台北 101', interviewDate: d(-9), interviewTime: '10:30', note: '', crew: [m('p3', 10000, d(-2)), m('p4', 5000, d(-6), true, true)] },
+    j2: { client: 'B 精品錶', issue: '線上廣編', native: true, topic: '製錶工藝與傳承', interviewee: '品牌總監（示範）', location: '台北 101', interviewDate: d(-9), interviewTime: '10:30', note: '', crew: [m('p3', 10000, d(-2)), m('p4', 5000, d(-6), true, true)] },
     j3: { client: 'C 百貨', issue: '遠見 11 月號', topic: '週年慶與通路轉型', interviewee: '總經理（示範）', location: '信義新天地', interviewDate: t, interviewTime: '16:00', note: '受訪者只有 40 分鐘，攝影先到場架燈', crew: [m('p1', 12000, d(7)), m('p2', 6000, d(3))] },
     j4: { client: 'A 金控', issue: '遠見 11 月號', topic: '高資產客戶的傳承規劃', interviewee: '私銀處長（示範）', location: '', interviewDate: d(-5), interviewTime: '15:00', note: '', crew: [m('p3', 10000, d(2)), m('p4', 5000, d(-1), true)] },
     j5: { client: 'D 能源', issue: '遠見 12 月號', topic: '離岸風電的下一步', interviewee: '', location: '', interviewDate: d(16), interviewTime: '', note: '', crew: [m('p3', 10000, d(23))] },
@@ -1061,7 +1064,7 @@ function jobCard(id, job, st) {
   const cal = anchor
     ? `<span class="cal"><span class="cal-m">${mm} 月</span><span class="cal-d">${dd}</span></span>`
     : `<span class="cal none"><span class="cal-m">${job.noInterview ? '免採訪' : '未排'}</span><span class="cal-d">—</span></span>`;
-  const sub = [job.client, job.issue].filter(Boolean).map(esc).join(' · ');
+  const sub = [job.client, job.issue, job.native ? '原生廣編' : ''].filter(Boolean).map(esc).join(' · ');
   let when = '';
   if (job.noInterview) {
     when = `<span>免採訪${anchor ? ` · 最早交稿 週${C.weekday(anchor)}` : ''}</span>`;
@@ -1188,7 +1191,7 @@ function renderPeople() {
       const sub = [p.phone || p.email || p.line || '尚未填聯絡方式', st.count ? `合作 ${st.count} 案` : ''].filter(Boolean).join(' · ');
       return `<button class="cell person-cell" onclick="openPerson('${esc(id)}')">
         <span class="avatar">${esc((p.name || '?').slice(0, 1))}</span>
-        <span class="cell-main"><span class="cell-title">${esc(p.name)}</span><span class="cell-sub">${esc(sub)}</span></span>${CHEV}</button>`;
+        <span class="cell-main"><span class="cell-title">${esc(p.name)}${p.nativeWriter ? '<span class="admin-tag">原生寫手</span>' : ''}</span><span class="cell-sub">${esc(sub)}</span></span>${CHEV}</button>`;
     }).join('')}</div>`;
   }).join('');
   $('people-list').innerHTML = sections || `<div class="empty">${icon('users')}<h3>${Object.keys(people).length ? `還沒有${esc(ui.role)}` : '名冊是空的'}</h3>
@@ -1257,6 +1260,7 @@ function openJob(id) {
   $('j-time').value = j.interviewTime || '';
   $('j-note').value = j.note || '';
   $('j-has-iv').checked = !j.noInterview;
+  $('j-native').checked = !!j.native;
   $('j-delete').hidden = !id;
   applyInterviewMode();
   draftCrew = id
@@ -1274,24 +1278,31 @@ function applyInterviewMode() {
   $('j-invite').hidden = $('j-invite-hint').hidden = !on;
   $('j-ics').hidden = !editingJobId;
   $('j-actions').hidden = $('j-invite').hidden && $('j-ics').hidden;
-  $('j-crew-hint').textContent = on
+  $('j-crew-hint').textContent = (on
     ? '先選角色再選人，會自動帶入預設稿費與交稿日（採訪後：記者 7 天、攝影 3 天、美編 10 天）。'
-    : '免採訪：選人後會帶入預設稿費，交稿日請自己選。';
+    : '免採訪：選人後會帶入預設稿費，交稿日請自己選。') + (isNative() ? '原生廣編：記者只能選原生寫手。' : '');
 }
 function onToggleInterview() { readCrewFromDOM(); applyInterviewMode(); }
+const isNative = () => $('j-native').checked;
+function onToggleNative() { readCrewFromDOM(); applyInterviewMode(); renderCrewEditor(); }
+// 原生廣編裡，這位記者是不是原生寫手（非記者一律不檢查）
+const nativeMismatch = c => isNative() && c.role === '記者' && c.personId && !(people[c.personId] && people[c.personId].nativeWriter);
 
-// 人員選單只列出該角色的人
+// 人員選單只列出該角色的人；原生廣編的記者只列原生寫手
 function personOptions(role, selected, fallbackName) {
+  const nativeOnly = role === '記者' && isNative();
   const list = Object.entries(people)
-    .filter(([, p]) => roleOf(p) === role)
+    .filter(([, p]) => roleOf(p) === role && (!nativeOnly || p.nativeWriter))
     .sort((a, b) => (a[1].name || '').localeCompare(b[1].name || '', 'zh-Hant'));
-  let html = `<option value="">${list.length ? '選擇' : `還沒有${esc(role)}`}</option>`;
+  const label = nativeOnly ? '原生寫手' : role;
+  let html = `<option value="">${list.length ? '選擇' : `還沒有${esc(label)}`}</option>`;
   html += list.map(([id, p]) => `<option value="${esc(id)}"${id === selected ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
   if (selected && !list.some(([id]) => id === selected)) {
     const p = people[selected];
-    html += `<option value="${esc(selected)}" selected>${esc((p && p.name) || fallbackName || '已刪除的人員')}${p ? `（${esc(roleOf(p))}）` : '（已不在名冊）'}</option>`;
+    const why = !p ? '（已不在名冊）' : roleOf(p) !== role ? `（${esc(roleOf(p))}）` : '（非原生寫手）';
+    html += `<option value="${esc(selected)}" selected>${esc((p && p.name) || fallbackName || '已刪除的人員')}${why}</option>`;
   }
-  return html + `<option value="__new__">新增${esc(role)}…</option>`;
+  return html + `<option value="__new__">新增${esc(label)}…</option>`;
 }
 
 function renderCrewEditor() {
@@ -1301,6 +1312,7 @@ function renderCrewEditor() {
       <div class="form-row seg-row"><div class="seg" role="radiogroup" aria-label="角色">${CONFIG.ROLES.map(r =>
         `<button type="button" role="radio" aria-checked="${r === c.role}" data-role="${r}" onclick="onCrewRole(${i}, '${r}')">${r}</button>`).join('')}</div></div>
       <label class="form-row"><span class="fr-label">人員</span><select class="ce-person menu-select${c.personId ? ' has-value' : ''}" onchange="onCrewPerson(${i}, this)">${personOptions(c.role, c.personId, c.name)}</select></label>
+      ${nativeMismatch(c) ? '<div class="form-row" style="color:var(--red);font-size:15px">不是原生寫手，原生廣編只能排原生寫手</div>' : ''}
       <label class="form-row"><span class="fr-label">稿費</span><span class="money">NT$</span><input class="ce-fee" type="number" inputmode="numeric" min="0" step="100" placeholder="0" value="${esc(c.fee)}"></label>
       <label class="form-row"><span class="fr-label">交稿日</span><input class="ce-due pill-input" type="date" value="${esc(c.dueDate)}"></label>
       <label class="form-row"><span class="fr-label">已申請</span>${switchHtml('ce-req', c.feeRequested, '已申請')}</label>
@@ -1368,7 +1380,7 @@ function onCrewPerson(i, sel) {
       draftCrew[i].role = roleOf(people[newId]);
       applyPersonDefaults(i);
       renderCrewEditor();
-    });
+    }, draftCrew[i].role === '記者' && isNative()); // 原生廣編裡新增的記者預設就是原生寫手
     return;
   }
   readCrewFromDOM();
@@ -1403,13 +1415,15 @@ function saveJob() {
       feeRequested: !!c.feeRequested
     });
   }
+  const wrong = draftCrew.filter(c => nativeMismatch(c)).map(c => personName(c));
+  if (wrong.length && !confirm(`${wrong.join('、')} 不是原生寫手，原生廣編只能排原生寫手。仍要儲存嗎？`)) return;
   const prev = editingJobId ? jobs[editingJobId] : null;
   const id = editingJobId || store.newId('jobs');
   const iv = hasInterview();
   const date = iv ? v('j-date') : '', time = iv ? v('j-time') : '';
   const obj = {
     client, topic,
-    issue: v('j-issue'), noInterview: !iv,
+    issue: v('j-issue'), native: isNative(), noInterview: !iv,
     interviewee: iv ? v('j-interviewee') : '', location: iv ? v('j-location') : '',
     interviewDate: C.isDate(date) ? date : '', interviewTime: C.isTime(time) ? time : '',
     note: $('j-note').value.trim(),
@@ -1434,14 +1448,16 @@ function deleteJob() {
 function renderPersonRole() {
   $('p-role-seg').innerHTML = CONFIG.ROLES.map(r =>
     `<button type="button" role="radio" aria-checked="${r === personRole}" onclick="personRole = '${r}'; renderPersonRole()">${r}</button>`).join('');
+  $('p-native-row').hidden = $('p-native-hint').hidden = personRole !== '記者'; // 原生寫手只對記者有意義
 }
-function openPerson(id, presetRole, cb) {
+function openPerson(id, presetRole, cb, presetNative) {
   editingPersonId = id || null;
   personCallback = cb || null;
   const p = id ? people[id] : {};
   if (id && !p) return toast('找不到這位人員');
   personRole = p.role || presetRole || '記者';
-  $('person-sheet-title').textContent = id ? '編輯人員' : `新增${presetRole || '人員'}`;
+  $('p-native').checked = id ? !!p.nativeWriter : !!presetNative;
+  $('person-sheet-title').textContent = id ? '編輯人員' : `新增${presetNative ? '原生寫手' : presetRole || '人員'}`;
   renderPersonRole();
   $('p-name').value = p.name || '';
   $('p-phone').value = p.phone || '';
@@ -1467,6 +1483,7 @@ function savePerson() {
   const prev = editingPersonId ? people[editingPersonId] : null;
   const obj = {
     name, role: personRole,
+    nativeWriter: personRole === '記者' && $('p-native').checked,
     phone: $('p-phone').value.trim(), email: $('p-email').value.trim(), line: $('p-line').value.trim(),
     defaultFee: Math.max(0, Number($('p-fee').value) || 0),
     note: $('p-note').value.trim(),
