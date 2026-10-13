@@ -242,7 +242,7 @@ button.cell:active { background: var(--cell-hl); transition: none; }
 .group-caption { padding: 0 16px 7px; color: var(--label-2); font-size: 13px; }
 .group-foot { margin: -14px 0 22px; padding: 0 16px; color: var(--label-2); font-size: 13px; line-height: 18px; }
 .form-row { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 6px 16px; border: none; background: none; color: var(--label); font-size: 17px; text-align: left; }
-.form-row + .form-row::before { content: ""; position: absolute; top: 0; right: 0; left: 16px; height: .5px; background: var(--sep); }
+.form-row + .form-row::before, #planner-rows:not(:empty) + .form-row::before { content: ""; position: absolute; top: 0; right: 0; left: 16px; height: .5px; background: var(--sep); }
 .fr-label { flex: none; width: 64px; }
 .fr-label.wide { width: 96px; }
 .form-row input:not([type="checkbox"]):not([type="date"]):not([type="time"]), .form-row select, .form-row textarea {
@@ -386,7 +386,9 @@ button.cell:active { background: var(--cell-hl); transition: none; }
       <div class="form-group">
         <label class="form-row"><span class="fr-label">客戶</span><input id="j-client" list="client-list" placeholder="國泰世華銀行" autocomplete="off"></label>
         <label class="form-row"><span class="fr-label">刊期</span><input id="j-issue" placeholder="遠見 12 月號、線上 11/20"></label>
-        <label class="form-row"><span class="fr-label wide">原生廣編</span><span class="switch"><input type="checkbox" role="switch" id="j-native" aria-label="原生廣編" onchange="onToggleNative()"><span class="track"></span></span></label>
+        <label class="form-row"><span class="fr-label wide">數位廣編</span><span class="switch"><input type="checkbox" role="switch" id="j-digital" aria-label="數位廣編" onchange="onToggleDigital()"><span class="track"></span></span></label>
+        <label class="form-row" id="j-planner-row"><span class="fr-label wide">數位企劃</span><select id="j-planner" class="menu-select" onchange="this.classList.toggle('has-value', !!this.value)"></select></label>
+        <label class="form-row" id="j-native-row"><span class="fr-label wide">原生廣編</span><span class="switch"><input type="checkbox" role="switch" id="j-native" aria-label="原生廣編" onchange="onToggleNative()"><span class="track"></span></span></label>
       </div>
       <div class="form-group">
         <label class="form-row"><span class="fr-label">主題</span><input id="j-topic" placeholder="永續金融 CEO 專訪"></label>
@@ -498,6 +500,13 @@ button.cell:active { background: var(--cell-hl); transition: none; }
         <label class="form-row"><span class="fr-label wide">初始密碼</span><input id="na-pin" class="pin-field" type="password" inputmode="numeric" maxlength="4" placeholder="4 位數字" autocomplete="new-password"></label>
         <button type="button" class="form-row action" data-icon="circle-plus" onclick="addAccount()">新增帳號</button>
       </div>
+      <div class="group-caption">數位企劃名單</div>
+      <div class="form-group">
+        <div id="planner-rows"></div>
+        <label class="form-row"><span class="fr-label wide">新增</span><input id="np-name" placeholder="英文名字" autocomplete="off"></label>
+        <button type="button" class="form-row action" data-icon="circle-plus" onclick="addPlanner()">加入名單</button>
+      </div>
+      <div class="group-foot">所有同事共用同一份名單，數位廣編選「數位企劃」時會列出這些人。</div>
     </div>
   </div>
 </div>
@@ -545,7 +554,10 @@ const CONFIG = {
   CONTACTS_UID: 'nomo', // 只有這個帳號會讀客戶聯絡資訊當客戶名稱建議
   ROLES: ['記者', '攝影', '美編', '其他'],
   DUE_OFFSET: { '記者': 7, '攝影': 3, '美編': 10, '其他': 7 },
-  INTERVIEW_HOURS: 2
+  INTERVIEW_HOURS: 2,
+  OUTLINE_BEFORE: 7, // 交訪綱預設在採訪前幾天
+  // 數位企劃預設名單（照字母排）；管理員可在「帳號管理」增刪，存在 interview-crew/settings/planners
+  PLANNERS: ['Carol', 'Chris', 'Cora', 'Hailey', 'Jones', 'Sally', 'Wendy']
 };
 const FIREBASE = {
   apiKey:            'AIzaSyB0nqFFS6-MIuWAM0XDnURRnxg57JZF5Sc',
@@ -573,6 +585,7 @@ const ICONS = {
   'check': '<path d="M20 6 9 17l-5-5"/>',
   'chevron-right': '<path d="m9 18 6-6-6-6"/>',
   'circle': '<circle cx="12" cy="12" r="10"/>',
+  'clipboard-list': '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
   'circle-check': '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
   'circle-ellipsis': '<circle cx="12" cy="12" r="10"/><path d="M17 12h.01"/><path d="M12 12h.01"/><path d="M7 12h.01"/>',
   'circle-plus': '<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/>',
@@ -597,7 +610,7 @@ const C = window.CrewCore;
 const DEMO = new URLSearchParams(location.search).has('demo');
 
 // ── 狀態 ──────────────────────────────────────────────────────
-let jobs = {}, people = {}, contactClients = [];
+let jobs = {}, people = {}, contactClients = [], planners = CONFIG.PLANNERS.slice();
 const ui = { tab: 'schedule', q: '', role: '全部', showDone: false, loaded: false, sync: 'connecting', openMonths: new Set() };
 let editingJobId = null, editingPersonId = null, draftCrew = [], personCallback = null, personRole = '記者';
 let lastToday = C.todayTW();
@@ -800,7 +813,10 @@ const accountsApi = DEMO ? demoAccountsApi() : {
   subscribe(cb) { base.child('accounts').on('value', s => cb(s.val()), err => { setSync('error', err); $('lock-pick-sub').textContent = '無法載入帳號，請檢查網路'; }); },
   newId() { return base.child('accounts').push().key; },
   save(uid, obj) { return base.child('accounts').child(uid).set(obj); },
-  remove(uid) { return base.child('accounts').child(uid).remove(); }
+  remove(uid) { return base.child('accounts').child(uid).remove(); },
+  // 數位企劃名單：全公司共用，所有帳號讀同一份
+  subscribePlanners(cb) { base.child('settings/planners').on('value', s => cb(s.val()), () => cb(null)); },
+  savePlanners(list) { return base.child('settings/planners').set(list); }
 };
 function makeStore(uid) { return DEMO ? demoStore() : firebaseStore(uid); }
 function firebaseStore(uid) {
@@ -839,7 +855,9 @@ function demoAccountsApi() {
     },
     newId() { return `udemo${Date.now().toString(36)}`; },
     save(uid, obj) { data[uid] = JSON.parse(JSON.stringify(obj)); emit(); return Promise.resolve(); },
-    remove(uid) { delete data[uid]; emit(); return Promise.resolve(); }
+    remove(uid) { delete data[uid]; emit(); return Promise.resolve(); },
+    subscribePlanners(fn) { this._p = fn; fn(null); },
+    savePlanners(list) { if (this._p) this._p(list.slice()); return Promise.resolve(); }
   };
 }
 function demoStore() {
@@ -887,6 +905,10 @@ function demoSeed() {
     j7: { client: 'F 保險', issue: '遠見 11 月號', topic: '品牌形象稿（客戶提供資料）', noInterview: true, interviewee: '', location: '', interviewDate: '', interviewTime: '', note: '', crew: [m('p3', 9000, d(5)), m('p5', 7000, d(9))] },
     j6: { client: 'E 半導體', issue: '遠見 10 月號', topic: '先進封裝的人才戰', interviewee: '副總經理（示範）', location: '新竹科學園區', interviewDate: d(-30), interviewTime: '09:30', note: '', crew: [m('p1', 12000, d(-23), true, true), m('p4', 5000, d(-27), true, true)] }
   };
+  // 交訪綱與數位企劃示範：明天採訪的記者訪綱已逾期、今天採訪的已交
+  Object.assign(J.j1.crew[0], { outlineDate: d(-1) });
+  Object.assign(J.j3.crew[0], { outlineDate: d(-7), outlineDone: true });
+  Object.assign(J.j2, { digital: true, planner: 'Wendy' });
   Object.values(J).forEach(j => { j.createdAt = now; j.updatedAt = now; });
   return { jobs: J, people: P };
 }
@@ -927,9 +949,27 @@ function renderActions() {
 }
 function openAccountSheet() {
   if (!me || !me.admin) return;
-  $('na-name').value = ''; $('na-pin').value = '';
+  $('na-name').value = ''; $('na-pin').value = ''; $('np-name').value = '';
   renderAccountRows();
+  renderPlannerRows();
   openSheet('account-sheet');
+}
+function renderPlannerRows() {
+  $('planner-rows').innerHTML = planners.map((n, i) => `<div class="form-row"><span class="cell-main">${esc(n)}</span>
+      <button type="button" class="row-btn danger" onclick="removePlanner(${i})">移除</button></div>`).join('');
+}
+function addPlanner() {
+  const name = $('np-name').value.trim();
+  if (!name) { toast('請填名字'); return $('np-name').focus(); }
+  if (planners.some(n => n.toLowerCase() === name.toLowerCase())) { toast('名單裡已經有了'); return; }
+  accountsApi.savePlanners([...planners, name].sort((a, b) => a.localeCompare(b, 'en')))
+    .then(() => toast(`已加入 ${name}`)).catch(failed);
+  $('np-name').value = '';
+}
+function removePlanner(i) {
+  const name = planners[i];
+  if (!name || !confirm(`把 ${name} 移出數位企劃名單？已經指派給他的案子會保留名字。`)) return;
+  accountsApi.savePlanners(planners.filter(n => n !== name)).then(() => toast(`已移除 ${name}`)).catch(failed);
 }
 function renderAccountRows() {
   $('account-rows').innerHTML = sortedAccounts().map(([uid, a]) => `<div class="form-row">
@@ -1029,6 +1069,7 @@ function renderToday(list) {
   const items = C.reminderItems(list, today());
   const TILE = {
     interview: { today: ['t-orange', 'mic'], soon: ['t-blue', 'mic'] },
+    outline: { overdue: ['t-red', 'clipboard-list'], today: ['t-orange', 'clipboard-list'], soon: ['t-blue', 'clipboard-list'] },
     due: { overdue: ['t-red', 'file-text'], today: ['t-orange', 'file-text'], soon: ['t-indigo', 'file-text'] }
   };
   const rows = items.length ? items.map(it => {
@@ -1040,13 +1081,13 @@ function renderToday(list) {
       title = esc(what);
       sub = [it.time, it.location, it.interviewee, it.crew.map(c => `${c.role} ${c.name}`).join('、')].filter(Boolean).map(esc).join(' · ');
     } else {
-      title = `${esc(it.name)}（${esc(it.role || '人員')}）交稿`;
+      title = `${esc(it.name)}（${esc(it.role || '人員')}）${it.kind === 'outline' ? '交訪綱' : '交稿'}`;
       sub = `${esc(C.fmtDate(it.date))} · ${esc(what)}`;
     }
     return `<button class="cell" style="--sep-left:58px" onclick="focusJob('${esc(it.jobId)}')">
       <span class="tile ${tc}">${icon(ic)}</span>
       <span class="cell-main"><span class="cell-title">${title}</span><span class="cell-sub"><span class="lv-${it.level}">${esc(it.label)}</span>${sub ? ` · ${sub}` : ''}</span></span>${CHEV}</button>`;
-  }).join('') : `<div class="cell"><span class="tile t-green">${icon('check')}</span><span class="cell-main"><span class="cell-title">今天沒有要追的事</span><span class="cell-sub">沒有逾期，也沒有今明兩天的採訪與交稿</span></span></div>`;
+  }).join('') : `<div class="cell"><span class="tile t-green">${icon('check')}</span><span class="cell-main"><span class="cell-title">今天沒有要追的事</span><span class="cell-sub">沒有逾期，也沒有近兩天的採訪、訪綱與交稿</span></span></div>`;
   $('today-panel').innerHTML = `<div class="big-head"><h2>今日提醒</h2>${items.length ? `<span class="n">${items.length}</span>` : ''}</div><div class="list">${rows}</div>`;
 }
 
@@ -1064,7 +1105,8 @@ function jobCard(id, job, st) {
   const cal = anchor
     ? `<span class="cal"><span class="cal-m">${mm} 月</span><span class="cal-d">${dd}</span></span>`
     : `<span class="cal none"><span class="cal-m">${job.noInterview ? '免採訪' : '未排'}</span><span class="cal-d">—</span></span>`;
-  const sub = [job.client, job.issue, job.native ? '原生廣編' : ''].filter(Boolean).map(esc).join(' · ');
+  const kind = job.native ? '原生廣編' : job.digital ? '數位廣編' : '';
+  const sub = [job.client, job.issue, kind, (job.digital || job.native) && job.planner ? `數位企劃 ${job.planner}` : ''].filter(Boolean).map(esc).join(' · ');
   let when = '';
   if (job.noInterview) {
     when = `<span>免採訪${anchor ? ` · 最早交稿 週${C.weekday(anchor)}` : ''}</span>`;
@@ -1084,9 +1126,16 @@ function jobCard(id, job, st) {
     if (!C.isDate(c.dueDate)) due = `<span class="due-text lv-none">${c.delivered ? '' : '未填交稿日'}</span>`;
     else if (c.delivered) due = `<span class="due-text">交稿 ${shortDate(c.dueDate)}</span>`;
     else { const cd = countdown(c.dueDate); due = `<span class="due-text">交稿 ${shortDate(c.dueDate)} · <span class="${cd.cls} nowrap">${cd.text}</span></span>`; }
+    // 記者的交訪綱（免採訪的案子沒有）
+    let outline = '';
+    if (!job.noInterview && C.isDate(c.outlineDate)) {
+      const cd = countdown(c.outlineDate);
+      outline = `<span class="crew-line2"><span class="due-text">訪綱 ${shortDate(c.outlineDate)}${c.outlineDone ? '' : ` · <span class="${cd.cls} nowrap">${cd.text}</span>`}</span><span class="caps">${capsule(i, c, 'outlineDone', '已交訪綱', 'done')}</span></span>`;
+    }
     return `<div class="cell crew-cell${c.delivered ? ' is-done' : ''}">
       <span class="cell-main">
         <span class="crew-line"><span class="role-tag ${roleClass(c.role)}">${esc(c.role || '人員')}</span><span class="crew-name">${esc(c.name)}</span><span class="crew-fee">${c.fee ? money(c.fee) : '—'}</span></span>
+        ${outline}
         <span class="crew-line2">${due}<span class="caps">${capsule(i, c, 'feeRequested', '已申請', 'req')}${capsule(i, c, 'delivered', '已交稿', 'done')}</span></span>
       </span>
     </div>`;
@@ -1146,7 +1195,8 @@ function focusJob(id) {
 
 const CREW_FLAGS = {
   delivered:    ['已標記交稿', '已取消交稿標記'],
-  feeRequested: ['已標記已申請', '已取消申請標記']
+  feeRequested: ['已標記已申請', '已取消申請標記'],
+  outlineDone:  ['已標記交訪綱', '已取消交訪綱標記']
 };
 function toggleCrew(id, i, field, val) {
   if (!CREW_FLAGS[field]) return;
@@ -1260,16 +1310,37 @@ function openJob(id) {
   $('j-time').value = j.interviewTime || '';
   $('j-note').value = j.note || '';
   $('j-has-iv').checked = !j.noInterview;
+  $('j-digital').checked = !!(j.digital || j.native); // 舊資料只有 native，原生一定是數位
   $('j-native').checked = !!j.native;
+  $('j-planner').innerHTML = plannerOptions(j.planner || '');
   $('j-delete').hidden = !id;
+  applyDigitalMode();
   applyInterviewMode();
   draftCrew = id
-    ? C.crewOf(j).map(c => ({ personId: c.personId || '', name: c.name || '', role: c.role || roleOf(people[c.personId]), fee: c.fee || '', dueDate: c.dueDate || '', delivered: !!c.delivered, feeRequested: !!c.feeRequested }))
+    ? C.crewOf(j).map(c => ({ personId: c.personId || '', name: c.name || '', role: c.role || roleOf(people[c.personId]), fee: c.fee || '', outlineDate: c.outlineDate || '', outlineDone: !!c.outlineDone, dueDate: c.dueDate || '', delivered: !!c.delivered, feeRequested: !!c.feeRequested }))
     : [blankCrew('記者'), blankCrew('攝影')];
   renderCrewEditor();
   openSheet('job-sheet');
 }
-function blankCrew(role) { return { personId: '', name: '', role: role || '記者', fee: '', dueDate: '', delivered: false, feeRequested: false }; }
+function blankCrew(role) { return { personId: '', name: '', role: role || '記者', fee: '', outlineDate: '', outlineDone: false, dueDate: '', delivered: false, feeRequested: false }; }
+// 數位企劃選單：名單裡的人；這個案子原本指派的人若已不在名單也保留顯示
+function plannerOptions(selected) {
+  const names = selected && !planners.includes(selected) ? [...planners, selected] : planners;
+  return '<option value="">選擇</option>' + names.map(n => `<option value="${esc(n)}"${n === selected ? ' selected' : ''}>${esc(n)}</option>`).join('');
+}
+const isDigital = () => $('j-digital').checked;
+function applyDigitalMode() {
+  const on = isDigital();
+  $('j-planner-row').hidden = $('j-native-row').hidden = !on;
+  $('j-planner').classList.toggle('has-value', !!$('j-planner').value);
+}
+function onToggleDigital() {
+  readCrewFromDOM();
+  if (!isDigital()) $('j-native').checked = false; // 不是數位就不可能是原生
+  applyDigitalMode();
+  applyInterviewMode();
+  renderCrewEditor();
+}
 const hasInterview = () => $('j-has-iv').checked;
 // 「需要採訪」開關：關掉時收起受訪者、地點、採訪時間與寄邀請（填過的值先留著，儲存時才清掉）
 function applyInterviewMode() {
@@ -1282,8 +1353,14 @@ function applyInterviewMode() {
     ? '先選角色再選人，會自動帶入預設稿費與交稿日（採訪後：記者 7 天、攝影 3 天、美編 10 天）。'
     : '免採訪：選人後會帶入預設稿費，交稿日請自己選。') + (isNative() ? '原生廣編：記者只能選原生寫手。' : '');
 }
-function onToggleInterview() { readCrewFromDOM(); applyInterviewMode(); }
-const isNative = () => $('j-native').checked;
+function onToggleInterview() { readCrewFromDOM(); applyInterviewMode(); renderCrewEditor(); }
+const isNative = () => isDigital() && $('j-native').checked;
+// 交訪綱只給「有採訪」案子裡的記者
+const needsOutline = c => c.role === '記者' && hasInterview();
+function suggestOutline() {
+  const d = $('j-date').value;
+  return hasInterview() && C.isDate(d) ? C.addDays(d, -CONFIG.OUTLINE_BEFORE) : '';
+}
 function onToggleNative() { readCrewFromDOM(); applyInterviewMode(); renderCrewEditor(); }
 // 原生廣編裡，這位記者是不是原生寫手（非記者一律不檢查）
 const nativeMismatch = c => isNative() && c.role === '記者' && c.personId && !(people[c.personId] && people[c.personId].nativeWriter);
@@ -1314,6 +1391,8 @@ function renderCrewEditor() {
       <label class="form-row"><span class="fr-label">人員</span><select class="ce-person menu-select${c.personId ? ' has-value' : ''}" onchange="onCrewPerson(${i}, this)">${personOptions(c.role, c.personId, c.name)}</select></label>
       ${nativeMismatch(c) ? '<div class="form-row" style="color:var(--red);font-size:15px">不是原生寫手，原生廣編只能排原生寫手</div>' : ''}
       <label class="form-row"><span class="fr-label">稿費</span><span class="money">NT$</span><input class="ce-fee" type="number" inputmode="numeric" min="0" step="100" placeholder="0" value="${esc(c.fee)}"></label>
+      ${needsOutline(c) ? `<label class="form-row"><span class="fr-label">交訪綱</span><input class="ce-outline pill-input" type="date" value="${esc(c.outlineDate)}"></label>
+      <label class="form-row"><span class="fr-label wide">已交訪綱</span>${switchHtml('ce-outline-done', c.outlineDone, '已交訪綱')}</label>` : ''}
       <label class="form-row"><span class="fr-label">交稿日</span><input class="ce-due pill-input" type="date" value="${esc(c.dueDate)}"></label>
       <label class="form-row"><span class="fr-label">已申請</span>${switchHtml('ce-req', c.feeRequested, '已申請')}</label>
       <label class="form-row"><span class="fr-label">已交稿</span>${switchHtml('ce-done', c.delivered, '已交稿')}</label>
@@ -1329,6 +1408,8 @@ function readCrewFromDOM() {
     const on = row.querySelector('.seg [aria-checked="true"]');
     if (on) c.role = on.dataset.role;
     c.fee = row.querySelector('.ce-fee').value;
+    const ol = row.querySelector('.ce-outline'); // 只有記者列有，其他角色保留原值
+    if (ol) { c.outlineDate = ol.value; c.outlineDone = row.querySelector('.ce-outline-done').checked; }
     c.dueDate = row.querySelector('.ce-due').value;
     c.delivered = row.querySelector('.ce-done').checked;
     c.feeRequested = row.querySelector('.ce-req').checked;
@@ -1354,6 +1435,7 @@ function applyPersonDefaults(i) {
   c.name = p.name;
   if (!c.fee && p.defaultFee) c.fee = p.defaultFee;
   if (!c.dueDate) c.dueDate = suggestDue(c.role);
+  if (needsOutline(c) && !c.outlineDate) c.outlineDate = suggestOutline();
 }
 // 換角色：原本選的人不是這個角色就清掉，自動帶入的稿費、交稿日跟著換
 function onCrewRole(i, role) {
@@ -1368,6 +1450,7 @@ function onCrewRole(i, role) {
     c.personId = ''; c.name = '';
   }
   if (c.dueDate && c.dueDate === suggestDue(before)) c.dueDate = suggestDue(role);
+  if (c.personId && needsOutline(c) && !c.outlineDate) c.outlineDate = suggestOutline();
   renderCrewEditor();
 }
 function onCrewPerson(i, sel) {
@@ -1389,7 +1472,10 @@ function onCrewPerson(i, sel) {
 }
 function onInterviewDateChange() {
   readCrewFromDOM();
-  draftCrew.forEach(c => { if (c.personId && !c.dueDate) c.dueDate = suggestDue(c.role); });
+  draftCrew.forEach(c => {
+    if (c.personId && !c.dueDate) c.dueDate = suggestDue(c.role);
+    if (c.personId && needsOutline(c) && !c.outlineDate) c.outlineDate = suggestOutline();
+  });
   renderCrewEditor();
 }
 
@@ -1410,6 +1496,9 @@ function saveJob() {
       name: (people[c.personId] && people[c.personId].name) || c.name || '',
       role: c.role || '記者',
       fee: Math.max(0, Number(c.fee) || 0),
+      // 交訪綱只留給有採訪的記者，換了角色或改成免採訪就清掉
+      outlineDate: needsOutline(c) && C.isDate(c.outlineDate) ? c.outlineDate : '',
+      outlineDone: needsOutline(c) && !!c.outlineDone,
       dueDate: C.isDate(c.dueDate) ? c.dueDate : '',
       delivered: !!c.delivered,
       feeRequested: !!c.feeRequested
@@ -1423,7 +1512,7 @@ function saveJob() {
   const date = iv ? v('j-date') : '', time = iv ? v('j-time') : '';
   const obj = {
     client, topic,
-    issue: v('j-issue'), native: isNative(), noInterview: !iv,
+    issue: v('j-issue'), digital: isDigital(), planner: isDigital() ? $('j-planner').value : '', native: isNative(), noInterview: !iv,
     interviewee: iv ? v('j-interviewee') : '', location: iv ? v('j-location') : '',
     interviewDate: C.isDate(date) ? date : '', interviewTime: C.isTime(time) ? time : '',
     note: $('j-note').value.trim(),
@@ -1636,6 +1725,11 @@ if (DEMO) {
 lockScroll();
 setTab(['people', 'fees'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'schedule');
 accountsApi.subscribe(onAccounts);
+// 還沒存過名單就用預設的 7 位
+accountsApi.subscribePlanners(list => {
+  planners = (Array.isArray(list) && list.length ? list : CONFIG.PLANNERS).filter(Boolean).slice().sort((a, b) => a.localeCompare(b, 'en'));
+  if (!$('account-sheet').hidden) renderPlannerRows();
+});
 </script>
 </body>
 </html>

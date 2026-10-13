@@ -62,8 +62,19 @@
     return crewOf(job).map(c => c.dueDate).filter(isDate).sort()[0] || '';
   }
 
+  // 記者要先交訪綱給客戶；免採訪的案子沒有訪綱
+  function outlinePending(job, c) {
+    return !job.noInterview && !c.outlineDone && isDate(c.outlineDate);
+  }
+  // 成員後面的日期註記：「（訪綱 10/2（四）、交稿 10/16（四））」
+  function crewDates(c) {
+    const parts = [isDate(c.outlineDate) && `訪綱 ${fmtDate(c.outlineDate)}`, isDate(c.dueDate) && `交稿 ${fmtDate(c.dueDate)}`].filter(Boolean);
+    return parts.length ? `（${parts.join('、')}）` : '';
+  }
+  const KIND_ORDER = { interview: 0, outline: 1, due: 2 };
+
   // ── 單一案子狀態 ───────────────────────────────────────────
-  // 採訪日已過＝採訪完成；交稿以「已交」勾選為準
+  // 採訪日已過＝採訪完成；交訪綱、交稿以各自的勾選為準
   function jobStatus(job, today) {
     const crew = crewOf(job);
     const pending = [];
@@ -72,25 +83,26 @@
       pending.push({ kind: 'interview', date: iv, time: job.interviewTime || '' });
     }
     crew.forEach((c, i) => {
+      if (outlinePending(job, c)) pending.push({ kind: 'outline', date: c.outlineDate, time: '', crewIndex: i });
       if (!c.delivered && isDate(c.dueDate)) {
         pending.push({ kind: 'due', date: c.dueDate, time: '', crewIndex: i });
       }
     });
     const missingDue = crew.some(c => !c.delivered && !isDate(c.dueDate));
-    const overdue = pending.filter(e => e.kind === 'due' && diffDays(today, e.date) < 0).length;
+    const overdue = pending.filter(e => e.kind !== 'interview' && diffDays(today, e.date) < 0).length;
 
     if (!pending.length) {
       const hasAnyDate = !!iv || crew.some(c => isDate(c.dueDate));
       if (missingDue || !hasAnyDate) return { group: 'nodate', nextDate: '', next: null, overdue: 0, missingDue };
       return { group: 'done', nextDate: '', next: null, overdue: 0, missingDue: false };
     }
-    pending.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+    pending.sort((a, b) => a.date.localeCompare(b.date) || KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || a.time.localeCompare(b.time));
     const next = pending[0];
     return { group: level(diffDays(today, next.date)), nextDate: next.date, next, overdue, missingDue };
   }
 
   // ── 今日提醒清單（網頁頂部、LINE、日報共用）─────────────────
-  // 採訪：今天、明天；交稿：逾期、今天、2 天內
+  // 採訪：今天、明天；交訪綱、交稿：逾期、今天、2 天內
   function reminderItems(entries, today) {
     const items = [];
     entries.forEach(([id, job]) => {
@@ -109,12 +121,21 @@
         }
       }
       crewOf(job).forEach((c, i) => {
+        const who = { crewIndex: i, name: c.name || '', role: c.role || '' };
+        if (outlinePending(job, c)) {
+          const d = diffDays(today, c.outlineDate);
+          if (d <= 2) items.push({
+            ...base, ...who, kind: 'outline', diff: d, level: d < 0 ? 'overdue' : d === 0 ? 'today' : 'soon',
+            date: c.outlineDate, time: '',
+            label: d < 0 ? `訪綱逾期 ${-d} 天` : d === 0 ? '今天交訪綱' : `${d} 天後交訪綱`
+          });
+        }
         if (c.delivered || !isDate(c.dueDate)) return;
         const d = diffDays(today, c.dueDate);
         if (d > 2) return;
         items.push({
-          ...base, kind: 'due', diff: d, level: d < 0 ? 'overdue' : d === 0 ? 'today' : 'soon',
-          date: c.dueDate, time: '', crewIndex: i, name: c.name || '', role: c.role || '',
+          ...base, ...who, kind: 'due', diff: d, level: d < 0 ? 'overdue' : d === 0 ? 'today' : 'soon',
+          date: c.dueDate, time: '',
           label: d < 0 ? `逾期 ${-d} 天` : d === 0 ? '今天交稿' : `${d} 天後交稿`
         });
       });
@@ -122,7 +143,7 @@
     return items.sort((a, b) =>
       LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level] ||
       a.date.localeCompare(b.date) ||
-      (a.kind === 'interview' ? 0 : 1) - (b.kind === 'interview' ? 0 : 1) ||
+      KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
       a.time.localeCompare(b.time));
   }
 
@@ -215,7 +236,7 @@
       if (interviewOf(job) && (!from || job.interviewDate >= from)) {
         const desc = [
           job.interviewee ? `受訪者：${job.interviewee}` : '',
-          ...crew.map(c => `${c.role || '人員'}：${c.name || ''}${c.dueDate ? `（交稿 ${fmtDate(c.dueDate)}）` : ''}`),
+          ...crew.map(c => `${c.role || '人員'}：${c.name || ''}${crewDates(c)}`),
           job.note ? `備註：${job.note}` : ''
         ].filter(Boolean).join('\n');
         pushEvent({
@@ -226,6 +247,15 @@
         count++;
       }
       crew.forEach((c, i) => {
+        if (outlinePending(job, c) && (!from || c.outlineDate >= from)) {
+          pushEvent({
+            uid: `${id}-outline-${c.personId || i}@interview-crew.nomowho`, date: c.outlineDate, time: '',
+            summary: `交訪綱｜${c.name || ''}（${c.role || '記者'}）${title}`,
+            description: interviewOf(job) ? `採訪日：${fmtDate(job.interviewDate)}` : '',
+            alarm: '-PT15H'
+          });
+          count++;
+        }
         if (c.delivered || !isDate(c.dueDate) || (from && c.dueDate < from)) return;
         pushEvent({
           uid: `${id}-due-${c.personId || i}@interview-crew.nomowho`, date: c.dueDate, time: '',
@@ -276,7 +306,7 @@
       job.issue && `刊期：${htmlEsc(job.issue)}`,
       job.location && `地點：${htmlEsc(job.location)}`
     ].filter(Boolean).join('<br>');
-    const team = crew.map(c => `${htmlEsc(c.role || '人員')}　${htmlEsc(c.name)}${isDate(c.dueDate) ? `（交稿 ${fmtDate(c.dueDate)}）` : ''}`).join('<br>');
+    const team = crew.map(c => `${htmlEsc(c.role || '人員')}　${htmlEsc(c.name)}${crewDates(c)}`).join('<br>');
     const body = [
       info && `<p>${info}</p>`,
       team && `<p><b>採訪團隊</b><br>${team}</p>`,
@@ -309,7 +339,7 @@
       job.location && `地點：${job.location}`
     ].filter(Boolean).join('\n');
     const team = crew.length
-      ? ['採訪團隊', ...crew.map(c => `${c.role || '人員'}　${c.name || ''}${isDate(c.dueDate) ? `（交稿 ${fmtDate(c.dueDate)}）` : ''}`)].join('\n')
+      ? ['採訪團隊', ...crew.map(c => `${c.role || '人員'}　${c.name || ''}${crewDates(c)}`)].join('\n')
       : '';
     // 稿費一律不放：受邀者都看得到這段說明
     return [info, team, job.note ? `備註：${job.note}` : ''].filter(Boolean).join('\n\n');
