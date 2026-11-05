@@ -313,7 +313,7 @@
       job.note && `<p>備註：${htmlEsc(job.note).replace(/\r?\n/g, '<br>')}</p>`
     ].filter(Boolean).join('');
 
-    const params = [['subject', `採訪｜${title}`]];
+    const params = [['subject', `遠見採訪｜${title}`]];
     if (isTime(job.interviewTime)) {
       params.push(['startdt', twToISO(job.interviewDate, job.interviewTime)], ['enddt', twToISO(job.interviewDate, job.interviewTime, hours)]);
     } else {
@@ -357,11 +357,11 @@
     } else {
       L.push(`DTSTART;VALUE=DATE:${compact(job.interviewDate)}`, `DTEND;VALUE=DATE:${compact(addDays(job.interviewDate, 1))}`);
     }
-    L.push(`SUMMARY:${icsEscape(`採訪｜${title}`)}`);
+    L.push(`SUMMARY:${icsEscape(`遠見採訪｜${title}`)}`);
     if (job.location) L.push(`LOCATION:${icsEscape(job.location)}`);
     const desc = inviteText(job);
     if (desc) L.push(`DESCRIPTION:${icsEscape(desc)}`);
-    L.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsEscape(`採訪｜${title}`)}`, `TRIGGER:${isTime(job.interviewTime) ? '-P1D' : '-PT15H'}`, 'END:VALARM',
+    L.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsEscape(`遠見採訪｜${title}`)}`, `TRIGGER:${isTime(job.interviewTime) ? '-P1D' : '-PT15H'}`, 'END:VALARM',
       'END:VEVENT', 'END:VCALENDAR');
     return { text: L.map(foldLine).join('\r\n') + '\r\n' };
   }
