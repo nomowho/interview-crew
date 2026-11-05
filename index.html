@@ -150,6 +150,7 @@ button.cell:active { background: var(--cell-hl); transition: none; }
 .seg { display: flex; width: 100%; padding: 2px; border-radius: 9px; background: var(--fill); }
 .seg button { flex: 1; min-width: 0; height: 28px; padding: 0 4px; border: none; border-radius: 7px; background: none; color: var(--label); font-size: 13px; font-weight: 500; white-space: nowrap; transition: background .2s, box-shadow .2s; }
 .seg button[aria-checked="true"] { background: var(--seg-on); box-shadow: 0 3px 8px rgba(0,0,0,.12), 0 3px 1px rgba(0,0,0,.04); font-weight: 600; }
+.seg button.filled::after { content: ''; display: inline-block; width: 6px; height: 6px; margin-left: 4px; border-radius: 50%; background: var(--blue); vertical-align: middle; }
 .seg-wrap { margin-bottom: 4px; }
 
 /* ── 案子 ── */
@@ -1317,12 +1318,24 @@ function openJob(id) {
   applyDigitalMode();
   applyInterviewMode();
   draftCrew = id
-    ? C.crewOf(j).map(c => ({ personId: c.personId || '', name: c.name || '', role: c.role || roleOf(people[c.personId]), fee: c.fee || '', outlineDate: c.outlineDate || '', outlineDone: !!c.outlineDone, dueDate: c.dueDate || '', delivered: !!c.delivered, feeRequested: !!c.feeRequested }))
-    : [blankCrew('記者'), blankCrew('攝影')];
+    ? groupCrew(C.crewOf(j).map(c => ({ personId: c.personId || '', name: c.name || '', role: c.role || roleOf(people[c.personId]), fee: c.fee || '', outlineDate: c.outlineDate || '', outlineDone: !!c.outlineDone, dueDate: c.dueDate || '', delivered: !!c.delivered, feeRequested: !!c.feeRequested })))
+    : [blankCrew('記者', 0)];
   renderCrewEditor();
   openSheet('job-sheet');
 }
-function blankCrew(role) { return { personId: '', name: '', role: role || '記者', fee: '', outlineDate: '', outlineDone: false, dueDate: '', delivered: false, feeRequested: false }; }
+// 每個成員區塊是一組角色分頁，各角色各記一位；slot＝所屬區塊，shown＝該區塊正在看的分頁
+function blankCrew(role, slot) { return { personId: '', name: '', role: role || '記者', fee: '', outlineDate: '', outlineDone: false, dueDate: '', delivered: false, feeRequested: false, slot, shown: true }; }
+function groupCrew(list) {
+  const out = [];
+  list.forEach(c => {
+    let slot = 0;
+    while (out.some(x => x.slot === slot && x.role === c.role)) slot++; // 同角色第二位放下一個區塊
+    out.push({ ...c, slot, shown: !out.some(x => x.slot === slot) });
+  });
+  return out;
+}
+const crewSlots = () => [...new Set(draftCrew.map(c => c.slot))].sort((a, b) => a - b);
+const nextSlot = () => Math.max(-1, ...draftCrew.map(c => c.slot)) + 1;
 // 數位企劃選單：名單裡的人；這個案子原本指派的人若已不在名單也保留顯示
 function plannerOptions(selected) {
   const names = selected && !planners.includes(selected) ? [...planners, selected] : planners;
@@ -1350,8 +1363,8 @@ function applyInterviewMode() {
   $('j-ics').hidden = !editingJobId;
   $('j-actions').hidden = $('j-invite').hidden && $('j-ics').hidden;
   $('j-crew-hint').textContent = (on
-    ? '先選角色再選人，會自動帶入預設稿費與交稿日（採訪後：記者 7 天、攝影 3 天、美編 10 天）。'
-    : '免採訪：選人後會帶入預設稿費，交稿日請自己選。') + (isNative() ? '原生廣編：記者只能選原生寫手。' : '');
+    ? '切換角色可各選一位，選了人的角色會亮藍點，儲存時全部存下。選人後自動帶入預設稿費與交稿日（採訪後：記者 7 天、攝影 3 天、美編 10 天）。'
+    : '切換角色可各選一位，選了人的角色會亮藍點，儲存時全部存下。免採訪：選人後會帶入預設稿費，交稿日請自己選。') + (isNative() ? '原生廣編：記者只能選原生寫手。' : '');
 }
 function onToggleInterview() { readCrewFromDOM(); applyInterviewMode(); renderCrewEditor(); }
 const isNative = () => isDigital() && $('j-native').checked;
@@ -1383,11 +1396,13 @@ function personOptions(role, selected, fallbackName) {
 }
 
 function renderCrewEditor() {
-  $('crew-rows').innerHTML = draftCrew.map((c, i) => `
-    <div class="group-caption">成員 ${i + 1}</div>
+  $('crew-rows').innerHTML = crewSlots().map((slot, n) => {
+    const i = draftCrew.findIndex(c => c.slot === slot && c.shown), c = draftCrew[i];
+    return `
+    <div class="group-caption">成員 ${n + 1}</div>
     <div class="form-group ce-row" data-i="${i}">
       <div class="form-row seg-row"><div class="seg" role="radiogroup" aria-label="角色">${CONFIG.ROLES.map(r =>
-        `<button type="button" role="radio" aria-checked="${r === c.role}" data-role="${r}" onclick="onCrewRole(${i}, '${r}')">${r}</button>`).join('')}</div></div>
+        `<button type="button" role="radio" aria-checked="${r === c.role}" data-role="${r}"${draftCrew.some(x => x.slot === slot && x.role === r && x.personId) ? ' class="filled"' : ''} onclick="onCrewRole(${i}, '${r}')">${r}</button>`).join('')}</div></div>
       <label class="form-row"><span class="fr-label">人員</span><select class="ce-person menu-select${c.personId ? ' has-value' : ''}" onchange="onCrewPerson(${i}, this)">${personOptions(c.role, c.personId, c.name)}</select></label>
       ${nativeMismatch(c) ? '<div class="form-row" style="color:var(--red);font-size:15px">不是原生寫手，原生廣編只能排原生寫手</div>' : ''}
       <label class="form-row"><span class="fr-label">稿費</span><span class="money">NT$</span><input class="ce-fee" type="number" inputmode="numeric" min="0" step="100" placeholder="0" value="${esc(c.fee)}"></label>
@@ -1397,7 +1412,8 @@ function renderCrewEditor() {
       <label class="form-row"><span class="fr-label">已申請</span>${switchHtml('ce-req', c.feeRequested, '已申請')}</label>
       <label class="form-row"><span class="fr-label">已交稿</span>${switchHtml('ce-done', c.delivered, '已交稿')}</label>
       <button type="button" class="form-row action danger" onclick="removeCrewRow(${i})">移除成員</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 function readCrewFromDOM() {
   document.querySelectorAll('#crew-rows .ce-row').forEach(row => {
@@ -1417,13 +1433,21 @@ function readCrewFromDOM() {
 }
 function addCrewRow() {
   readCrewFromDOM();
-  const has = r => draftCrew.some(c => c.role === r);
-  draftCrew.push(blankCrew(!has('記者') ? '記者' : !has('攝影') ? '攝影' : !has('美編') ? '美編' : '記者'));
+  const has = r => draftCrew.some(c => c.role === r && c.personId);
+  draftCrew.push(blankCrew(!has('記者') ? '記者' : !has('攝影') ? '攝影' : !has('美編') ? '美編' : '記者', nextSlot()));
   renderCrewEditor();
   const rows = document.querySelectorAll('#crew-rows .ce-row');
   rows[rows.length - 1].scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' });
 }
-function removeCrewRow(i) { readCrewFromDOM(); draftCrew.splice(i, 1); renderCrewEditor(); }
+// 移除目前分頁這位；區塊裡還有選了人的角色就切過去，否則整個區塊收掉
+function removeCrewRow(i) {
+  readCrewFromDOM();
+  const [c] = draftCrew.splice(i, 1);
+  const next = draftCrew.find(x => x.slot === c.slot && x.personId);
+  if (next) next.shown = true;
+  else draftCrew = draftCrew.filter(x => x.slot !== c.slot);
+  renderCrewEditor();
+}
 function suggestDue(role) {
   if (!hasInterview()) return ''; // 免採訪沒有基準日，交稿日讓使用者自己選
   const d = $('j-date').value;
@@ -1437,20 +1461,15 @@ function applyPersonDefaults(i) {
   if (!c.dueDate) c.dueDate = suggestDue(c.role);
   if (needsOutline(c) && !c.outlineDate) c.outlineDate = suggestOutline();
 }
-// 換角色：原本選的人不是這個角色就清掉，自動帶入的稿費、交稿日跟著換
+// 切角色分頁：各角色各記各的，切走不清除，切回來還在
 function onCrewRole(i, role) {
   readCrewFromDOM();
   const c = draftCrew[i];
-  const before = c.role;
-  if (role === before) return;
-  c.role = role;
-  const p = people[c.personId];
-  if (p && roleOf(p) !== role) {
-    if (p.defaultFee && Number(c.fee) === Number(p.defaultFee)) c.fee = '';
-    c.personId = ''; c.name = '';
-  }
-  if (c.dueDate && c.dueDate === suggestDue(before)) c.dueDate = suggestDue(role);
-  if (c.personId && needsOutline(c) && !c.outlineDate) c.outlineDate = suggestOutline();
+  if (role === c.role) return;
+  let target = draftCrew.find(x => x.slot === c.slot && x.role === role);
+  if (!target) draftCrew.push(target = blankCrew(role, c.slot));
+  c.shown = false;
+  target.shown = true;
   renderCrewEditor();
 }
 function onCrewPerson(i, sel) {
@@ -1459,9 +1478,14 @@ function onCrewPerson(i, sel) {
     sel.value = draftCrew[i].personId || '';
     openPerson(null, draftCrew[i].role, newId => {
       readCrewFromDOM();
-      draftCrew[i].personId = newId;
-      draftCrew[i].role = roleOf(people[newId]);
-      applyPersonDefaults(i);
+      const c = draftCrew[i], role = roleOf(people[newId]);
+      c.personId = newId;
+      // 新增時改了角色：同區塊已有該角色分頁的話，空的併掉，有人的就把新人放到新區塊
+      const dup = draftCrew.find(x => x !== c && x.slot === c.slot && x.role === role);
+      if (dup && dup.personId) { dup.shown = true; c.slot = nextSlot(); }
+      else if (dup) draftCrew.splice(draftCrew.indexOf(dup), 1);
+      c.role = role;
+      applyPersonDefaults(draftCrew.indexOf(c));
       renderCrewEditor();
     }, draftCrew[i].role === '記者' && isNative()); // 原生廣編裡新增的記者預設就是原生寫手
     return;
@@ -1485,10 +1509,14 @@ function saveJob() {
   const client = v('j-client'), topic = v('j-topic');
   if (!client && !topic) { toast('客戶或主題至少填一項'); $('j-client').focus(); return; }
   const crew = [];
-  for (let i = 0; i < draftCrew.length; i++) {
-    const c = draftCrew[i];
+  for (const c of [...draftCrew].sort((a, b) => a.slot - b.slot)) {
     if (!c.personId) {
-      if (c.fee || c.dueDate || c.delivered || c.feeRequested) { toast(`成員 ${i + 1} 還沒選人`); return; }
+      if (c.fee || c.dueDate || c.delivered || c.feeRequested) {
+        draftCrew.forEach(x => { if (x.slot === c.slot) x.shown = x === c; }); // 可能藏在別的分頁，切過去給使用者看
+        renderCrewEditor();
+        toast(`成員 ${crewSlots().indexOf(c.slot) + 1} 的${c.role}還沒選人`);
+        return;
+      }
       continue;
     }
     crew.push({
