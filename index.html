@@ -1107,7 +1107,7 @@ function jobCard(id, job, st) {
     ? `<span class="cal"><span class="cal-m">${mm} 月</span><span class="cal-d">${dd}</span></span>`
     : `<span class="cal none"><span class="cal-m">${job.noInterview ? '免採訪' : '未排'}</span><span class="cal-d">—</span></span>`;
   const kind = job.native ? '原生廣編' : job.digital ? '數位廣編' : '';
-  const sub = [job.client, job.issue, kind, (job.digital || job.native) && job.planner ? `數位企劃 ${job.planner}` : ''].filter(Boolean).map(esc).join(' · ');
+  const sub = [job.client && job.topic, job.issue, kind, (job.digital || job.native) && job.planner ? `數位企劃 ${job.planner}` : ''].filter(Boolean).map(esc).join(' · ');
   let when = '';
   if (job.noInterview) {
     when = `<span>免採訪${anchor ? ` · 最早交稿 週${C.weekday(anchor)}` : ''}</span>`;
@@ -1143,7 +1143,7 @@ function jobCard(id, job, st) {
   }).join('') : '<div class="cell muted-cell">還沒指派記者、攝影或美編</div>';
   return `<div class="list job lv-${st.group}" id="job-${esc(id)}">
     <button class="cell job-head" onclick="openJob('${esc(id)}')">${cal}
-      <span class="cell-main"><span class="job-title">${esc(job.topic || '（未填主題）')}</span>${sub ? `<span class="cell-sub">${sub}</span>` : ''}${meta ? `<span class="job-meta">${meta}</span>` : ''}</span>${CHEV}</button>
+      <span class="cell-main"><span class="job-title">${esc(job.client || job.topic || '（未命名）')}</span>${sub ? `<span class="cell-sub">${sub}</span>` : ''}${meta ? `<span class="job-meta">${meta}</span>` : ''}</span>${CHEV}</button>
     ${crew}
     ${job.note ? `<div class="cell note-cell">${icon('sticky-note')}<span>${esc(job.note)}</span></div>` : ''}
   </div>`;
