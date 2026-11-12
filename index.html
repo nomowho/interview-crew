@@ -161,6 +161,7 @@ button.cell:active { background: var(--cell-hl); transition: none; }
 .cal-m { color: var(--red); font-size: 11px; font-weight: 600; line-height: 13px; }
 .cal-d { font-family: var(--display); font-size: 24px; font-weight: 400; line-height: 28px; }
 .cal.none .cal-m { color: var(--label-2); } .cal.none .cal-d { color: var(--label-3); }
+.cal.none.tbd .cal-m { color: var(--orange); }
 .job-title { font-size: 17px; font-weight: 600; line-height: 22px; overflow-wrap: anywhere; }
 .job-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; margin-top: 2px; color: var(--label-2); font-size: 13px; line-height: 18px; }
 .job-meta > span { display: inline-flex; align-items: center; gap: 3px; }
@@ -403,8 +404,9 @@ button.cell:active { background: var(--cell-hl); transition: none; }
         </div>
         <div class="group-caption">採訪時間</div>
         <div class="form-group">
-          <label class="form-row"><span class="fr-label">日期</span><input id="j-date" class="pill-input" type="date" onchange="onInterviewDateChange()"></label>
-          <label class="form-row"><span class="fr-label">時間</span><input id="j-time" class="pill-input" type="time"></label>
+          <label class="form-row"><span class="fr-label wide">尚未確認</span><span class="switch"><input type="checkbox" role="switch" id="j-tbd" aria-label="採訪日期尚未確認" onchange="onToggleTBD()"><span class="track"></span></span></label>
+          <label class="form-row" id="j-date-row"><span class="fr-label">日期</span><input id="j-date" class="pill-input" type="date" onchange="onInterviewDateChange()"></label>
+          <label class="form-row" id="j-time-row"><span class="fr-label">時間</span><input id="j-time" class="pill-input" type="time"></label>
         </div>
       </div>
       <div id="crew-rows"></div>
@@ -582,7 +584,8 @@ const TAB_TITLES = { schedule: '排程', people: '人員', fees: '稿費' };
 // Lucide 圖示（lucide-static，ISC 授權）內嵌
 const ICONS = {
   'calendar-days': '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/>',
-  'calendar-plus': '<path d="M8 2v4"/><path d="M16 2v4"/><path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="M3 10h18"/><path d="M16 19h6"/><path d="M19 16v6"/>',
+  'calendar-clock': '<path d="M16 14v2.2l1.6 1"/><path d="M16 2v4"/><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M3 10h5"/><path d="M8 2v4"/><circle cx="16" cy="16" r="6"/>',
+  'calendar-plus':'<path d="M8 2v4"/><path d="M16 2v4"/><path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="M3 10h18"/><path d="M16 19h6"/><path d="M19 16v6"/>',
   'check': '<path d="M20 6 9 17l-5-5"/>',
   'chevron-right': '<path d="m9 18 6-6-6-6"/>',
   'circle': '<circle cx="12" cy="12" r="10"/>',
@@ -903,6 +906,7 @@ function demoSeed() {
     j3: { client: 'C 百貨', issue: '遠見 11 月號', topic: '週年慶與通路轉型', interviewee: '總經理（示範）', location: '信義新天地', interviewDate: t, interviewTime: '16:00', note: '受訪者只有 40 分鐘，攝影先到場架燈', crew: [m('p1', 12000, d(7)), m('p2', 6000, d(3))] },
     j4: { client: 'A 金控', issue: '遠見 11 月號', topic: '高資產客戶的傳承規劃', interviewee: '私銀處長（示範）', location: '', interviewDate: d(-5), interviewTime: '15:00', note: '', crew: [m('p3', 10000, d(2)), m('p4', 5000, d(-1), true)] },
     j5: { client: 'D 能源', issue: '遠見 12 月號', topic: '離岸風電的下一步', interviewee: '', location: '', interviewDate: d(16), interviewTime: '', note: '', crew: [m('p3', 10000, d(23))] },
+    j8: { client: 'G 銀行', issue: '遠見 1 月號', topic: '數位帳戶的下一步', interviewTBD: true, interviewee: '數位金融處長（示範）', location: '', interviewDate: '', interviewTime: '', note: '客戶還在喬高層行程', crew: [m('p1', 12000, ''), m('p2', 6000, '')] },
     j7: { client: 'F 保險', issue: '遠見 11 月號', topic: '品牌形象稿（客戶提供資料）', noInterview: true, interviewee: '', location: '', interviewDate: '', interviewTime: '', note: '', crew: [m('p3', 9000, d(5)), m('p5', 7000, d(9))] },
     j6: { client: 'E 半導體', issue: '遠見 10 月號', topic: '先進封裝的人才戰', interviewee: '副總經理（示範）', location: '新竹科學園區', interviewDate: d(-30), interviewTime: '09:30', note: '', crew: [m('p1', 12000, d(-23), true, true), m('p4', 5000, d(-27), true, true)] }
   };
@@ -1071,7 +1075,8 @@ function renderToday(list) {
   const TILE = {
     interview: { today: ['t-orange', 'mic'], soon: ['t-blue', 'mic'] },
     outline: { overdue: ['t-red', 'clipboard-list'], today: ['t-orange', 'clipboard-list'], soon: ['t-blue', 'clipboard-list'] },
-    due: { overdue: ['t-red', 'file-text'], today: ['t-orange', 'file-text'], soon: ['t-indigo', 'file-text'] }
+    due: { overdue: ['t-red', 'file-text'], today: ['t-orange', 'file-text'], soon: ['t-indigo', 'file-text'] },
+    tbd: { soon: ['t-orange', 'calendar-clock'] }
   };
   const rows = items.length ? items.map(it => {
     const what = [it.client, it.topic].filter(Boolean).join('｜');
@@ -1081,6 +1086,9 @@ function renderToday(list) {
     if (it.kind === 'interview') {
       title = esc(what);
       sub = [it.time, it.location, it.interviewee, it.crew.map(c => `${c.role} ${c.name}`).join('、')].filter(Boolean).map(esc).join(' · ');
+    } else if (it.kind === 'tbd') {
+      title = esc(what);
+      sub = [it.interviewee, it.crew.map(c => `${c.role} ${c.name}`).join('、')].filter(Boolean).map(esc).join(' · ');
     } else {
       title = `${esc(it.name)}（${esc(it.role || '人員')}）${it.kind === 'outline' ? '交訪綱' : '交稿'}`;
       sub = `${esc(C.fmtDate(it.date))} · ${esc(what)}`;
@@ -1094,18 +1102,18 @@ function renderToday(list) {
 
 function matches(job, q) {
   if (!q) return true;
-  const hay = [job.client, job.topic, job.issue, job.interviewee, job.location, job.note, ...job.crew.map(c => c.name)]
+  const hay = [job.client, job.topic, job.issue, job.interviewee, job.location, job.note, C.interviewTBD(job) && '待確認', ...job.crew.map(c => c.name)]
     .filter(Boolean).join(' ').toLowerCase();
   return q.split(/\s+/).every(w => hay.includes(w));
 }
 
 function jobCard(id, job, st) {
   // 日期方塊：有採訪顯示採訪日；免採訪顯示最早的交稿日
-  const anchor = C.anchorDate(job);
+  const anchor = C.anchorDate(job), tbd = C.interviewTBD(job);
   const [, mm, dd] = anchor ? anchor.split('-').map(Number) : [];
   const cal = anchor
     ? `<span class="cal"><span class="cal-m">${mm} 月</span><span class="cal-d">${dd}</span></span>`
-    : `<span class="cal none"><span class="cal-m">${job.noInterview ? '免採訪' : '未排'}</span><span class="cal-d">—</span></span>`;
+    : `<span class="cal none${tbd ? ' tbd' : ''}"><span class="cal-m">${job.noInterview ? '免採訪' : tbd ? '待確認' : '未排'}</span><span class="cal-d">—</span></span>`;
   const kind = job.native ? '原生廣編' : job.digital ? '數位廣編' : '';
   const sub = [job.client && job.topic, job.issue, kind, (job.digital || job.native) && job.planner ? `數位企劃 ${job.planner}` : ''].filter(Boolean).map(esc).join(' · ');
   let when = '';
@@ -1114,6 +1122,8 @@ function jobCard(id, job, st) {
   } else if (C.interviewOf(job)) {
     const s = interviewStatus(job.interviewDate);
     when = `<span class="${s.cls}">週${C.weekday(job.interviewDate)}${job.interviewTime ? ` ${esc(job.interviewTime)}` : ''} · ${s.text}</span>`;
+  } else if (tbd) {
+    when = '<span class="lv-soon">採訪日期待確認</span>';
   }
   const meta = [
     when,
@@ -1280,7 +1290,7 @@ function renderFees() {
         <span class="cell-value" style="font-size:15px">${p.count} 件</span><span class="amt">${money(p.total)}</span></div>`).join('')}
       <button class="cell toggle-cell${open ? ' open' : ''}" onclick="toggleMonth('${m.month}')">案件明細${CHEV}</button>
       ${open ? m.jobs.map(({ id, job, total }) => `<button class="cell detail-cell" onclick="focusJob('${esc(id)}')">
-        <span class="cell-main"><span class="cell-title">${C.anchorDate(job) ? `${esc(C.fmtDate(C.anchorDate(job)))} ` : ''}${esc([job.client, job.topic].filter(Boolean).join('｜') || '（未命名）')}${job.noInterview ? '（免採訪）' : ''}</span>
+        <span class="cell-main"><span class="cell-title">${C.anchorDate(job) ? `${esc(C.fmtDate(C.anchorDate(job)))} ` : ''}${esc([job.client, job.topic].filter(Boolean).join('｜') || '（未命名）')}${job.noInterview ? '（免採訪）' : C.interviewTBD(job) ? '（採訪日期待確認）' : ''}</span>
         <span class="cell-sub">${job.crew.map(c => `${esc(c.role)} ${esc(c.name)} ${c.fee ? money(c.fee) : '—'}${c.feeRequested ? '（已申請）' : ''}`).join(' · ')}</span></span>
         <span class="amt" style="font-size:15px">${money(total)}</span></button>`).join('') : ''}
     </div>`;
@@ -1311,6 +1321,7 @@ function openJob(id) {
   $('j-time').value = j.interviewTime || '';
   $('j-note').value = j.note || '';
   $('j-has-iv').checked = !j.noInterview;
+  $('j-tbd').checked = !!j.interviewTBD;
   $('j-digital').checked = !!(j.digital || j.native); // 舊資料只有 native，原生一定是數位
   $('j-native').checked = !!j.native;
   $('j-planner').innerHTML = plannerOptions(j.planner || '');
@@ -1355,24 +1366,43 @@ function onToggleDigital() {
   renderCrewEditor();
 }
 const hasInterview = () => $('j-has-iv').checked;
+const isTBD = () => hasInterview() && $('j-tbd').checked;
 // 「需要採訪」開關：關掉時收起受訪者、地點、採訪時間與寄邀請（填過的值先留著，儲存時才清掉）
+// 「尚未確認」開關：收起日期與時間，同樣儲存時才清掉
 function applyInterviewMode() {
-  const on = hasInterview();
+  const on = hasInterview(), tbd = isTBD();
   $('j-iv').hidden = !on;
+  $('j-date-row').hidden = $('j-time-row').hidden = tbd;
   $('j-invite').hidden = $('j-invite-hint').hidden = !on;
   $('j-ics').hidden = !editingJobId;
   $('j-actions').hidden = $('j-invite').hidden && $('j-ics').hidden;
-  $('j-crew-hint').textContent = (on
-    ? '切換角色可各選一位，選了人的角色會亮藍點，儲存時全部存下。選人後自動帶入預設稿費與交稿日（採訪後：記者 7 天、攝影 3 天、美編 10 天）。'
-    : '切換角色可各選一位，選了人的角色會亮藍點，儲存時全部存下。免採訪：選人後會帶入預設稿費，交稿日請自己選。') + (isNative() ? '原生廣編：記者只能選原生寫手。' : '');
+  $('j-crew-hint').textContent = '切換角色可各選一位，選了人的角色會亮藍點，儲存時全部存下。' + (!on
+    ? '免採訪：選人後會帶入預設稿費，交稿日請自己選。'
+    : tbd
+      ? '採訪日期還沒確認：選人後先帶入預設稿費，日期敲定後再自動帶入交訪綱與交稿日。'
+      : '選人後自動帶入預設稿費與交稿日（採訪後：記者 7 天、攝影 3 天、美編 10 天）。') + (isNative() ? '原生廣編：記者只能選原生寫手。' : '');
 }
 function onToggleInterview() { readCrewFromDOM(); applyInterviewMode(); renderCrewEditor(); }
+function onToggleTBD() {
+  readCrewFromDOM();
+  const d = $('j-date').value;
+  if (isTBD() && C.isDate(d)) {
+    // 照原採訪日自動帶出的交稿日、交訪綱跟著清掉；自己改過的日期保留
+    draftCrew.forEach(c => {
+      if (c.dueDate === C.addDays(d, CONFIG.DUE_OFFSET[c.role] || 7)) c.dueDate = '';
+      if (c.outlineDate === C.addDays(d, -CONFIG.OUTLINE_BEFORE)) c.outlineDate = '';
+    });
+  }
+  applyInterviewMode();
+  if (isTBD()) renderCrewEditor();
+  else onInterviewDateChange(); // 取消待確認：有日期就照規則補上空著的交訪綱與交稿日
+}
 const isNative = () => isDigital() && $('j-native').checked;
 // 交訪綱只給「有採訪」案子裡的記者
 const needsOutline = c => c.role === '記者' && hasInterview();
 function suggestOutline() {
   const d = $('j-date').value;
-  return hasInterview() && C.isDate(d) ? C.addDays(d, -CONFIG.OUTLINE_BEFORE) : '';
+  return hasInterview() && !isTBD() && C.isDate(d) ? C.addDays(d, -CONFIG.OUTLINE_BEFORE) : '';
 }
 function onToggleNative() { readCrewFromDOM(); applyInterviewMode(); renderCrewEditor(); }
 // 原生廣編裡，這位記者是不是原生寫手（非記者一律不檢查）
@@ -1449,7 +1479,7 @@ function removeCrewRow(i) {
   renderCrewEditor();
 }
 function suggestDue(role) {
-  if (!hasInterview()) return ''; // 免採訪沒有基準日，交稿日讓使用者自己選
+  if (!hasInterview() || isTBD()) return ''; // 免採訪、日期未定都沒有基準日
   const d = $('j-date').value;
   return C.isDate(d) ? C.addDays(d, CONFIG.DUE_OFFSET[role] || 7) : '';
 }
@@ -1536,11 +1566,11 @@ function saveJob() {
   if (wrong.length && !confirm(`${wrong.join('、')} 不是原生寫手，原生廣編只能排原生寫手。仍要儲存嗎？`)) return;
   const prev = editingJobId ? jobs[editingJobId] : null;
   const id = editingJobId || store.newId('jobs');
-  const iv = hasInterview();
-  const date = iv ? v('j-date') : '', time = iv ? v('j-time') : '';
+  const iv = hasInterview(), tbd = isTBD();
+  const date = iv && !tbd ? v('j-date') : '', time = iv && !tbd ? v('j-time') : '';
   const obj = {
     client, topic,
-    issue: v('j-issue'), digital: isDigital(), planner: isDigital() ? $('j-planner').value : '', native: isNative(), noInterview: !iv,
+    issue: v('j-issue'), digital: isDigital(), planner: isDigital() ? $('j-planner').value : '', native: isNative(), noInterview: !iv, interviewTBD: tbd,
     interviewee: iv ? v('j-interviewee') : '', location: iv ? v('j-location') : '',
     interviewDate: C.isDate(date) ? date : '', interviewTime: C.isTime(time) ? time : '',
     note: $('j-note').value.trim(),
@@ -1652,7 +1682,7 @@ function formJob() {
   const v = id => $(id).value.trim();
   return {
     client: v('j-client'), topic: v('j-topic'), issue: v('j-issue'), interviewee: v('j-interviewee'), location: v('j-location'),
-    interviewDate: v('j-date'), interviewTime: v('j-time'), note: $('j-note').value.trim(), noInterview: !hasInterview(),
+    interviewDate: isTBD() ? '' : v('j-date'), interviewTime: isTBD() ? '' : v('j-time'), note: $('j-note').value.trim(), noInterview: !hasInterview(), interviewTBD: isTBD(),
     crew: draftCrew.filter(c => c.personId).map(c => {
       const p = people[c.personId] || {};
       return { name: p.name || c.name, role: c.role, dueDate: c.dueDate, email: p.email || '' };
@@ -1664,6 +1694,7 @@ let inviteJob = null;
 function sendInvite() {
   const job = formJob();
   if (job.noInterview) return toast('免採訪的案子不用寄採訪邀請');
+  if (job.interviewTBD) return toast('採訪日期還沒確認，敲定後再寄邀請');
   if (!C.isDate(job.interviewDate)) return toast('請先填採訪日期');
   if (!job.crew.length) return toast('請先選好成員');
   if (IS_IOS) return openIosInvite(job);

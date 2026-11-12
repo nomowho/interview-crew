@@ -51,9 +51,13 @@
     const n = Number(c && c.fee);
     return Number.isFinite(n) && n > 0 ? n : 0;
   }
-  // 免採訪的案子（noInterview）沒有採訪日，一律忽略殘留的 interviewDate
+  // 要採訪但日期還沒敲定（interviewTBD）
+  function interviewTBD(job) {
+    return !!job && !job.noInterview && !!job.interviewTBD;
+  }
+  // 免採訪、日期尚未確認的案子沒有採訪日，一律忽略殘留的 interviewDate
   function interviewOf(job) {
-    return !job.noInterview && isDate(job.interviewDate) ? job.interviewDate : '';
+    return !job.noInterview && !job.interviewTBD && isDate(job.interviewDate) ? job.interviewDate : '';
   }
   // 案子的代表日期：有採訪看採訪日；免採訪看最早的交稿日（稿費歸月、卡片日期方塊都用這個）
   function anchorDate(job) {
@@ -71,7 +75,7 @@
     const parts = [isDate(c.outlineDate) && `訪綱 ${fmtDate(c.outlineDate)}`, isDate(c.dueDate) && `交稿 ${fmtDate(c.dueDate)}`].filter(Boolean);
     return parts.length ? `（${parts.join('、')}）` : '';
   }
-  const KIND_ORDER = { interview: 0, outline: 1, due: 2 };
+  const KIND_ORDER = { interview: 0, outline: 1, due: 2, tbd: 3 };
 
   // ── 單一案子狀態 ───────────────────────────────────────────
   // 採訪日已過＝採訪完成；交訪綱、交稿以各自的勾選為準
@@ -102,12 +106,19 @@
   }
 
   // ── 今日提醒清單（網頁頂部、LINE、日報共用）─────────────────
-  // 採訪：今天、明天；交訪綱、交稿：逾期、今天、2 天內
+  // 採訪：今天、明天；交訪綱、交稿：逾期、今天、2 天內；採訪日期尚未確認：每天提醒到敲定為止
   function reminderItems(entries, today) {
     const items = [];
     entries.forEach(([id, job]) => {
       if (!job) return;
       const base = { jobId: id, client: job.client || '', topic: job.topic || '' };
+      if (interviewTBD(job)) {
+        items.push({
+          ...base, kind: 'tbd', diff: null, level: 'soon', date: '', time: '',
+          interviewee: job.interviewee || '', label: '採訪日期待確認',
+          crew: crewOf(job).map(c => ({ name: c.name || '', role: c.role || '' }))
+        });
+      }
       if (interviewOf(job)) {
         const d = diffDays(today, job.interviewDate);
         if (d === 0 || d === 1) {
@@ -141,6 +152,7 @@
       });
     });
     return items.sort((a, b) =>
+      (a.kind === 'tbd') - (b.kind === 'tbd') || // 待確認排最後，有日期的事先看
       LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level] ||
       a.date.localeCompare(b.date) ||
       KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
@@ -296,6 +308,7 @@
       }
     });
     if (job.noInterview) return { url: '', attendees, missing, error: 'nointerview' };
+    if (job.interviewTBD) return { url: '', attendees, missing, error: 'tbd' };
     if (!isDate(job.interviewDate)) return { url: '', attendees, missing, error: 'nodate' };
 
     const title = [job.client, job.topic].filter(Boolean).join(' ') || '廣編採訪';
@@ -346,6 +359,7 @@
   }
   function buildInviteICS(id, job, opts = {}) {
     if (job.noInterview) return { error: 'nointerview' };
+    if (job.interviewTBD) return { error: 'tbd' };
     if (!isDate(job.interviewDate)) return { error: 'nodate' };
     const now = opts.now || new Date();
     const hours = opts.interviewHours || 2;
@@ -375,7 +389,7 @@
 
   return {
     TZ, todayTW, isDate, isTime, diffDays, addDays, weekday, fmtDate, level, inviteText, buildInviteICS, calshowURL,
-    crewOf, feeOf, interviewOf, anchorDate, jobStatus, reminderItems, monthlyFees,
+    crewOf, feeOf, interviewTBD, interviewOf, anchorDate, jobStatus, reminderItems, monthlyFees,
     icsEscape, foldLine, twToUTC, buildICS, twToISO, buildInvite
   };
 });
