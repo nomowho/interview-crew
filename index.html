@@ -120,6 +120,10 @@ button.cell:active { background: var(--cell-hl); transition: none; }
 .cell-title { font-size: 17px; line-height: 22px; overflow-wrap: anywhere; }
 .cell-sub { color: var(--label-2); font-size: 15px; line-height: 20px; overflow-wrap: anywhere; }
 .cell-value { flex: none; color: var(--label-2); font-size: 17px; }
+/* 今日提醒「明天採訪」底下的小動作列（傳 LINE 提醒），跟上一列算同一件事所以不畫分隔線 */
+.cell.sub-action { min-height: 0; gap: 6px; padding: 0 16px 12px 58px; margin-top: -4px; color: var(--blue); font-size: 15px; font-weight: 500; }
+.cell + .cell.sub-action::before { display: none; }
+.cell.sub-action .ico { width: 17px; height: 17px; }
 .chev { width: 14px; height: 14px; margin-left: 2px; color: var(--gray-3); stroke-width: 3; }
 .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 18px 16px 7px; color: var(--label-2); font-size: 13px; }
 .sec-head:first-child { padding-top: 4px; }
@@ -416,6 +420,7 @@ button.cell:active { background: var(--cell-hl); transition: none; }
       <div class="form-group"><div class="form-row"><textarea id="j-note" placeholder="聯絡窗口、注意事項…"></textarea></div></div>
       <div class="form-group" id="j-actions">
         <button type="button" class="form-row action" id="j-invite" data-icon="send" onclick="sendInvite()">寄採訪邀請</button>
+        <button type="button" class="form-row action" id="j-line" data-icon="message-circle" onclick="lineFromForm()">LINE 採訪提醒</button>
         <button type="button" class="form-row action" id="j-ics" data-icon="calendar-plus" onclick="exportJobICS(editingJobId)">加入我的行事曆</button>
       </div>
       <div class="group-foot" id="j-invite-hint">寄採訪邀請會開啟 Outlook 新增會議，有 Email 的成員自動列為與會者，你確認後按「傳送」才會寄出。邀請內容不含稿費；Outlook 會自動打開 Teams 會議，實體採訪記得關掉。</div>
@@ -480,6 +485,27 @@ button.cell:active { background: var(--cell-hl); transition: none; }
         <div class="form-group"><div class="form-row" id="iv-emails" style="user-select:text;-webkit-user-select:text;overflow-wrap:anywhere"></div></div>
       </div>
       <div class="form-group"><button type="button" class="form-row action" data-icon="send" onclick="openOutlookInvite()">改用 Outlook 網頁版寄出</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- LINE 採訪提醒：先預覽、可修改，再分享或複製 -->
+<div class="sheet stack" id="line-sheet" hidden>
+  <div class="sheet-backdrop" onclick="closeSheet('line-sheet')"></div>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="line-sheet-title">
+    <div class="sheet-nav">
+      <span></span>
+      <div class="sheet-title" id="line-sheet-title">LINE 採訪提醒</div>
+      <button class="nav-text strong" onclick="closeSheet('line-sheet')">完成</button>
+    </div>
+    <div class="sheet-body">
+      <div class="group-caption">預覽（可以直接修改）</div>
+      <div class="form-group"><div class="form-row"><textarea id="ln-text" oninput="fitLineText()" aria-label="LINE 提醒內容"></textarea></div></div>
+      <div class="form-group">
+        <button type="button" class="form-row action" data-icon="message-circle" onclick="shareLine()">分享到 LINE</button>
+        <button type="button" class="form-row action" data-icon="copy" onclick="copyLine()">複製文字</button>
+      </div>
+      <div class="group-foot">按「分享到 LINE」會打開 LINE，選採訪群組或成員後送出。電腦開不起來 LINE 時，改按「複製文字」再貼上。提醒內容不含稿費。</div>
     </div>
   </div>
 </div>
@@ -593,11 +619,13 @@ const ICONS = {
   'circle-check': '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
   'circle-ellipsis': '<circle cx="12" cy="12" r="10"/><path d="M17 12h.01"/><path d="M12 12h.01"/><path d="M7 12h.01"/>',
   'circle-plus': '<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/>',
-  'delete': '<path d="M10 5a2 2 0 0 0-1.344.519l-6.328 5.74a1 1 0 0 0 0 1.481l6.328 5.741A2 2 0 0 0 10 19h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><path d="m12 9 6 6"/><path d="m18 9-6 6"/>',
+  'copy': '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  'delete':'<path d="M10 5a2 2 0 0 0-1.344.519l-6.328 5.74a1 1 0 0 0 0 1.481l6.328 5.741A2 2 0 0 0 10 19h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><path d="m12 9 6 6"/><path d="m18 9-6 6"/>',
   'file-text': '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
   'info': '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
   'map-pin': '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
-  'mic': '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>',
+  'message-circle': '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+  'mic':'<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>',
   'plus': '<path d="M5 12h14"/><path d="M12 5v14"/>',
   'search': '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
   'send': '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
@@ -681,7 +709,7 @@ function unlockScroll() {
   window.scrollTo(0, lockedY);
 }
 function anyOverlay() {
-  return !$('pin-screen').hidden || ['job-sheet', 'person-sheet', 'account-sheet', 'password-sheet', 'invite-sheet', 'actions'].some(id => !$(id).hidden);
+  return !$('pin-screen').hidden || ['job-sheet', 'person-sheet', 'account-sheet', 'password-sheet', 'invite-sheet', 'line-sheet', 'actions'].some(id => !$(id).hidden);
 }
 function showOverlay(id) {
   const el = $(id);
@@ -786,7 +814,7 @@ function logout() {
   unsubscribeData = null; store = null; me = null;
   jobs = {}; people = {};
   ssSet('ic_session', null);
-  ['job-sheet', 'person-sheet', 'account-sheet', 'password-sheet', 'invite-sheet', 'actions'].forEach(id => { $(id).hidden = true; $(id).classList.remove('show'); });
+  ['job-sheet', 'person-sheet', 'account-sheet', 'password-sheet', 'invite-sheet', 'line-sheet', 'actions'].forEach(id => { $(id).hidden = true; $(id).classList.remove('show'); });
   render();
   showLock();
 }
@@ -1093,9 +1121,12 @@ function renderToday(list) {
       title = `${esc(it.name)}（${esc(it.role || '人員')}）${it.kind === 'outline' ? '交訪綱' : '交稿'}`;
       sub = `${esc(C.fmtDate(it.date))} · ${esc(what)}`;
     }
+    // 今天／明天採訪底下多一列：傳 LINE 採訪提醒
+    const lineRow = it.kind === 'interview'
+      ? `<button class="cell sub-action" onclick="lineFromJob('${esc(it.jobId)}')">${icon('message-circle')}LINE 採訪提醒</button>` : '';
     return `<button class="cell" style="--sep-left:58px" onclick="focusJob('${esc(it.jobId)}')">
       <span class="tile ${tc}">${icon(ic)}</span>
-      <span class="cell-main"><span class="cell-title">${title}</span><span class="cell-sub"><span class="lv-${it.level}">${esc(it.label)}</span>${sub ? ` · ${sub}` : ''}</span></span>${CHEV}</button>`;
+      <span class="cell-main"><span class="cell-title">${title}</span><span class="cell-sub"><span class="lv-${it.level}">${esc(it.label)}</span>${sub ? ` · ${sub}` : ''}</span></span>${CHEV}</button>${lineRow}`;
   }).join('') : `<div class="cell"><span class="tile t-green">${icon('check')}</span><span class="cell-main"><span class="cell-title">今天沒有要追的事</span><span class="cell-sub">沒有逾期，也沒有近兩天的採訪、訪綱與交稿</span></span></div>`;
   $('today-panel').innerHTML = `<div class="big-head"><h2>今日提醒</h2>${items.length ? `<span class="n">${items.length}</span>` : ''}</div><div class="list">${rows}</div>`;
 }
@@ -1373,7 +1404,7 @@ function applyInterviewMode() {
   const on = hasInterview(), tbd = isTBD();
   $('j-iv').hidden = !on;
   $('j-date-row').hidden = $('j-time-row').hidden = tbd;
-  $('j-invite').hidden = $('j-invite-hint').hidden = !on;
+  $('j-invite').hidden = $('j-invite-hint').hidden = $('j-line').hidden = !on;
   $('j-ics').hidden = !editingJobId;
   $('j-actions').hidden = $('j-invite').hidden && $('j-ics').hidden;
   $('j-crew-hint').textContent = '切換角色可各選一位，選了人的角色會亮藍點，儲存時全部存下。' + (!on
@@ -1737,6 +1768,30 @@ function iosAddToCalendar() {
   window.location.href = url; // 不能等複製完才開，Safari 只允許在點擊當下開
 }
 async function copyEmailsAgain() { toast((await copyEmails()) ? 'Email 已複製' : '請長按下方 Email 手動複製'); }
+
+// ── LINE 採訪提醒 ─────────────────────────────────────────────
+// 文字由案子自動帶出（不含稿費），先在面板預覽、可修改，再分享到 LINE 或複製
+function openLineReminder(job) {
+  const { text, error } = C.lineReminderText(job, { today: today(), sender: me && me.name });
+  if (error) return toast({ tbd: '採訪日期還沒確認，敲定後再傳提醒', nointerview: '免採訪的案子沒有採訪提醒' }[error] || '請先填採訪日期');
+  $('ln-text').value = text;
+  openSheet('line-sheet');
+  fitLineText();
+}
+// 文字框跟著內容長高，整段提醒一眼看完不用在框裡捲
+function fitLineText() { const el = $('ln-text'); el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+function lineFromForm() { openLineReminder(formJob()); } // 用表單上目前的內容，不必先儲存
+function lineFromJob(id) { jobs[id] ? openLineReminder(jobs[id]) : toast('找不到這個案子'); }
+function shareLine() {
+  const text = $('ln-text').value.trim();
+  if (!text) return toast('提醒內容是空的');
+  window.open('https://line.me/R/share?text=' + encodeURIComponent(text), '_blank', 'noopener'); // 要在點擊當下開，Safari 才不會擋
+}
+async function copyLine() {
+  const el = $('ln-text');
+  try { await navigator.clipboard.writeText(el.value); toast('已複製，貼到 LINE 即可'); }
+  catch (e) { el.focus(); el.select(); toast('請長按文字手動複製'); }
+}
 function exportBackup() {
   const data = { app: 'interview-crew', exportedAt: new Date().toISOString(), people, jobs };
   download(`interview-crew-backup_${today()}.json`, JSON.stringify(data, null, 2), 'application/json');
@@ -1764,7 +1819,7 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (e.key !== 'Escape') return;
-  const open = ['actions', 'invite-sheet', 'password-sheet', 'person-sheet', 'account-sheet', 'job-sheet'].find(id => !$(id).hidden);
+  const open = ['actions', 'line-sheet', 'invite-sheet', 'password-sheet', 'person-sheet', 'account-sheet', 'job-sheet'].find(id => !$(id).hidden);
   if (open === 'actions') closeActions(); else if (open) closeSheet(open);
 });
 window.addEventListener('hashchange', () => setTab(['people', 'fees'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'schedule'));

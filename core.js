@@ -387,8 +387,34 @@
     return `calshow:${Math.round((Date.UTC(y, m - 1, d, hh - 8, mm) - Date.UTC(2001, 0, 1)) / 1000)}`;
   }
 
+  // ── LINE 採訪提醒（採訪前一天傳到群組）──────────────────────
+  // 一樣不含稿費；地點是實體地址才附 Google 地圖連結
+  const ONLINE_RE = /線上|視訊|電話|meet|teams|zoom|webex/i;
+  function lineReminderText(job, opts = {}) {
+    if (job.noInterview) return { error: 'nointerview' };
+    if (job.interviewTBD) return { error: 'tbd' };
+    if (!isDate(job.interviewDate)) return { error: 'nodate' };
+    const d = opts.today ? diffDays(opts.today, job.interviewDate) : null;
+    const title = [job.client, job.topic].filter(Boolean).join('｜');
+    const loc = (job.location || '').trim(), online = ONLINE_RE.test(loc);
+    const crew = crewOf(job).map(c => [c.role, c.name].filter(Boolean).join(' ')).filter(Boolean);
+    const L = [`【遠見採訪提醒】${d === 0 ? '今天見！' : d === 1 ? '明天見！' : ''}`, ''];
+    L.push(`📅 ${fmtDate(job.interviewDate)} ${isTime(job.interviewTime) ? job.interviewTime : '時間待定'}`);
+    if (title) L.push(`🏢 ${title}`);
+    if (job.interviewee) L.push(`🎤 受訪者：${job.interviewee}`);
+    if (loc) {
+      L.push(`📍 ${loc}`);
+      if (!online) L.push(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`);
+    }
+    if (crew.length) L.push(`👥 ${crew.join('、')}`);
+    if (job.note) L.push(`📝 ${job.note}`);
+    L.push('', `麻煩大家提早 10 分鐘${online ? '上線' : '到現場'}，有任何狀況隨時跟我說，謝謝 🙏`);
+    if (opts.sender) L.push(opts.sender);
+    return { text: L.join('\n') };
+  }
+
   return {
-    TZ, todayTW, isDate, isTime, diffDays, addDays, weekday, fmtDate, level, inviteText, buildInviteICS, calshowURL,
+    TZ, todayTW, isDate, isTime, diffDays, addDays, weekday, fmtDate, level, inviteText, buildInviteICS, calshowURL, lineReminderText,
     crewOf, feeOf, interviewTBD, interviewOf, anchorDate, jobStatus, reminderItems, monthlyFees,
     icsEscape, foldLine, twToUTC, buildICS, twToISO, buildInvite
   };
