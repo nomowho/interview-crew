@@ -75,7 +75,20 @@
     const parts = [isDate(c.outlineDate) && `訪綱 ${fmtDate(c.outlineDate)}`, isDate(c.dueDate) && `交稿 ${fmtDate(c.dueDate)}`].filter(Boolean);
     return parts.length ? `（${parts.join('、')}）` : '';
   }
-  const KIND_ORDER = { interview: 0, outline: 1, due: 2, tbd: 3 };
+  // 結案：已提供結案報告（reportDone）、已寄出提票（invoiceSent）。
+  // 兩個欄位都沒有的是這功能上線前的舊案子，不追蹤（不然所有已完成的舊案子會一起變成待結案）
+  function closingTracked(job) {
+    return !!job && (job.reportDone !== undefined || job.invoiceSent !== undefined);
+  }
+  // 還沒做的結案項目，沒追蹤的案子一律是空的
+  function closingMissing(job) {
+    if (!closingTracked(job)) return [];
+    return [!job.reportDone && 'report', !job.invoiceSent && 'invoice'].filter(Boolean);
+  }
+  const CLOSING_LABEL = { report: '待提供結案報告', invoice: '待寄出提票' };
+  const closingLabel = missing => missing.map(k => CLOSING_LABEL[k]).join('、');
+
+  const KIND_ORDER = { interview: 0, outline: 1, due: 2, tbd: 3, closing: 4 };
 
   // ── 單一案子狀態 ───────────────────────────────────────────
   // 採訪日已過＝採訪完成；交訪綱、交稿以各自的勾選為準
@@ -98,6 +111,9 @@
     if (!pending.length) {
       const hasAnyDate = !!iv || crew.some(c => isDate(c.dueDate));
       if (missingDue || !hasAnyDate) return { group: 'nodate', nextDate: '', next: null, overdue: 0, missingDue };
+      // 該交的都交了，但結案報告或提票還沒處理完：留在排程上，不進已完成
+      const closing = closingMissing(job);
+      if (closing.length) return { group: 'closing', nextDate: '', next: null, overdue: 0, missingDue: false, closing };
       return { group: 'done', nextDate: '', next: null, overdue: 0, missingDue: false };
     }
     pending.sort((a, b) => a.date.localeCompare(b.date) || KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || a.time.localeCompare(b.time));
@@ -150,9 +166,14 @@
           label: d < 0 ? `逾期 ${-d} 天` : d === 0 ? '今天交稿' : `${d} 天後交稿`
         });
       });
+      // 該交的都交了、結案報告或提票還沒處理完：每天提醒到兩項都勾完為止
+      const st = jobStatus(job, today);
+      if (st.group === 'closing') {
+        items.push({ ...base, kind: 'closing', diff: null, level: 'soon', date: '', time: '', label: closingLabel(st.closing), missing: st.closing });
+      }
     });
     return items.sort((a, b) =>
-      (a.kind === 'tbd') - (b.kind === 'tbd') || // 待確認排最後，有日期的事先看
+      (a.kind === 'tbd' || a.kind === 'closing') - (b.kind === 'tbd' || b.kind === 'closing') || // 待確認、待結案排最後，有日期的事先看
       LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level] ||
       a.date.localeCompare(b.date) ||
       KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
@@ -415,7 +436,7 @@
 
   return {
     TZ, todayTW, isDate, isTime, diffDays, addDays, weekday, fmtDate, level, inviteText, buildInviteICS, calshowURL, lineReminderText,
-    crewOf, feeOf, interviewTBD, interviewOf, anchorDate, jobStatus, reminderItems, monthlyFees,
+    crewOf, feeOf, closingTracked, closingMissing, closingLabel, interviewTBD, interviewOf, anchorDate, jobStatus, reminderItems, monthlyFees,
     icsEscape, foldLine, twToUTC, buildICS, twToISO, buildInvite
   };
 });

@@ -175,6 +175,9 @@ button.cell:active { background: var(--cell-hl); transition: none; }
 
 /* 成員列跟案子標題對齊（左邊 16＋日期方塊 46＋間距 12） */
 .crew-cell { align-items: flex-start; padding-left: 74px; }
+.closing-cell { flex-wrap: wrap; justify-content: space-between; gap: 8px 10px; padding-left: 74px; }
+.closing-cell .caps { flex-wrap: wrap; }
+.job.lv-done .closing-cell { opacity: .55; }
 .crew-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .role-tag { flex: none; color: var(--gray); font-size: 13px; font-weight: 600; }
 .role-tag.r-記者 { color: var(--blue); } .role-tag.r-攝影 { color: var(--orange); } .role-tag.r-美編 { color: var(--teal); }
@@ -416,6 +419,12 @@ button.cell:active { background: var(--cell-hl); transition: none; }
       <div id="crew-rows"></div>
       <div class="form-group"><button type="button" class="form-row action" data-icon="circle-plus" onclick="addCrewRow()">加一位成員</button></div>
       <div class="group-foot" id="j-crew-hint"></div>
+      <div class="group-caption">結案</div>
+      <div class="form-group">
+        <label class="form-row"><span class="fr-label wide" style="flex:1;width:auto">已提供結案報告</span><span class="switch"><input type="checkbox" role="switch" id="j-report" aria-label="已提供結案報告" onchange="closingTouched = true"><span class="track"></span></span></label>
+        <label class="form-row"><span class="fr-label wide" style="flex:1;width:auto">已寄出提票</span><span class="switch"><input type="checkbox" role="switch" id="j-invoice" aria-label="已寄出提票" onchange="closingTouched = true"><span class="track"></span></span></label>
+      </div>
+      <div class="group-foot">成員都交稿後，結案報告或提票還沒勾完，案子會留在「待結案」，並每天出現在今日提醒。</div>
       <div class="group-caption">備註</div>
       <div class="form-group"><div class="form-row"><textarea id="j-note" placeholder="聯絡窗口、注意事項…"></textarea></div></div>
       <div class="form-group" id="j-actions">
@@ -603,6 +612,7 @@ const GROUPS = [
   { key: 'soon',    label: '三天內' },
   { key: 'week',    label: '七天內' },
   { key: 'later',   label: '之後' },
+  { key: 'closing', label: '待結案' },
   { key: 'nodate',  label: '待排日期' },
   { key: 'done',    label: '已完成', collapsible: true }
 ];
@@ -615,7 +625,8 @@ const ICONS = {
   'check': '<path d="M20 6 9 17l-5-5"/>',
   'chevron-right': '<path d="m9 18 6-6-6-6"/>',
   'circle': '<circle cx="12" cy="12" r="10"/>',
-  'clipboard-list': '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+  'clipboard-check': '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
+  'clipboard-list':'<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
   'circle-check': '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
   'circle-ellipsis': '<circle cx="12" cy="12" r="10"/><path d="M17 12h.01"/><path d="M12 12h.01"/><path d="M7 12h.01"/>',
   'circle-plus': '<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/>',
@@ -644,7 +655,7 @@ const DEMO = new URLSearchParams(location.search).has('demo');
 // ── 狀態 ──────────────────────────────────────────────────────
 let jobs = {}, people = {}, contactClients = [], planners = CONFIG.PLANNERS.slice();
 const ui = { tab: 'schedule', q: '', role: '全部', showDone: false, loaded: false, sync: 'connecting', openMonths: new Set() };
-let editingJobId = null, editingPersonId = null, draftCrew = [], personCallback = null, personRole = '記者';
+let editingJobId = null, editingPersonId = null, draftCrew = [], closingTouched = false, personCallback = null, personRole = '記者';
 let lastToday = C.todayTW();
 
 // ── 小工具 ────────────────────────────────────────────────────
@@ -936,7 +947,8 @@ function demoSeed() {
     j5: { client: 'D 能源', issue: '遠見 12 月號', topic: '離岸風電的下一步', interviewee: '', location: '', interviewDate: d(16), interviewTime: '', note: '', crew: [m('p3', 10000, d(23))] },
     j8: { client: 'G 銀行', issue: '遠見 1 月號', topic: '數位帳戶的下一步', interviewTBD: true, interviewee: '數位金融處長（示範）', location: '', interviewDate: '', interviewTime: '', note: '客戶還在喬高層行程', crew: [m('p1', 12000, ''), m('p2', 6000, '')] },
     j7: { client: 'F 保險', issue: '遠見 11 月號', topic: '品牌形象稿（客戶提供資料）', noInterview: true, interviewee: '', location: '', interviewDate: '', interviewTime: '', note: '', crew: [m('p3', 9000, d(5)), m('p5', 7000, d(9))] },
-    j6: { client: 'E 半導體', issue: '遠見 10 月號', topic: '先進封裝的人才戰', interviewee: '副總經理（示範）', location: '新竹科學園區', interviewDate: d(-30), interviewTime: '09:30', note: '', crew: [m('p1', 12000, d(-23), true, true), m('p4', 5000, d(-27), true, true)] }
+    j6: { client: 'E 半導體', issue: '遠見 10 月號', topic: '先進封裝的人才戰', interviewee: '副總經理（示範）', location: '新竹科學園區', interviewDate: d(-30), interviewTime: '09:30', note: '', reportDone: true, invoiceSent: true, crew: [m('p1', 12000, d(-23), true, true), m('p4', 5000, d(-27), true, true)] },
+    j9: { client: 'H 電信', issue: '遠見 10 月號', topic: '5G 專網的企業應用', interviewee: '技術長（示範）', location: '台北市內湖區', interviewDate: d(-16), interviewTime: '14:00', note: '', reportDone: true, invoiceSent: false, crew: [m('p3', 10000, d(-9), true, true), m('p4', 5000, d(-13), true, true)] }
   };
   // 交訪綱與數位企劃示範：明天採訪的記者訪綱已逾期、今天採訪的已交
   Object.assign(J.j1.crew[0], { outlineDate: d(-1) });
@@ -1104,7 +1116,8 @@ function renderToday(list) {
     interview: { today: ['t-orange', 'mic'], soon: ['t-blue', 'mic'] },
     outline: { overdue: ['t-red', 'clipboard-list'], today: ['t-orange', 'clipboard-list'], soon: ['t-blue', 'clipboard-list'] },
     due: { overdue: ['t-red', 'file-text'], today: ['t-orange', 'file-text'], soon: ['t-indigo', 'file-text'] },
-    tbd: { soon: ['t-orange', 'calendar-clock'] }
+    tbd: { soon: ['t-orange', 'calendar-clock'] },
+    closing: { soon: ['t-orange', 'clipboard-check'] }
   };
   const rows = items.length ? items.map(it => {
     const what = [it.client, it.topic].filter(Boolean).join('｜');
@@ -1114,6 +1127,9 @@ function renderToday(list) {
     if (it.kind === 'interview') {
       title = esc(what);
       sub = [it.time, it.location, it.interviewee, it.crew.map(c => `${c.role} ${c.name}`).join('、')].filter(Boolean).map(esc).join(' · ');
+    } else if (it.kind === 'closing') {
+      title = esc(what);
+      sub = '成員都已交稿';
     } else if (it.kind === 'tbd') {
       title = esc(what);
       sub = [it.interviewee, it.crew.map(c => `${c.role} ${c.name}`).join('、')].filter(Boolean).map(esc).join(' · ');
@@ -1158,6 +1174,7 @@ function jobCard(id, job, st) {
   }
   const meta = [
     when,
+    st.group === 'closing' ? `<span class="lv-soon">${esc(C.closingLabel(st.closing))}</span>` : '',
     job.interviewee ? `<span>${icon('mic')}${esc(job.interviewee)}</span>` : '',
     job.location ? `<span>${icon('map-pin')}${esc(job.location)}</span>` : ''
   ].join('');
@@ -1182,10 +1199,16 @@ function jobCard(id, job, st) {
       </span>
     </div>`;
   }).join('') : '<div class="cell muted-cell">還沒指派記者、攝影或美編</div>';
+  // 結案勾選：追蹤中的案子一律顯示；舊案子（沒有欄位）只有還沒做完時才顯示，勾了就開始追蹤
+  const closeCapsule = (field, label) =>
+    `<label class="capsule done"><input type="checkbox" aria-label="${label}"${job[field] ? ' checked' : ''} onchange="toggleClosing('${esc(id)}', '${field}', this.checked)">${icon('circle', 'off')}${icon('circle-check', 'on')}${label}</label>`;
+  const closing = C.closingTracked(job) || st.group !== 'done'
+    ? `<div class="cell closing-cell"><span class="caps">${closeCapsule('reportDone', '已提供結案報告')}${closeCapsule('invoiceSent', '已寄出提票')}</span></div>` : '';
   return `<div class="list job lv-${st.group}" id="job-${esc(id)}">
     <button class="cell job-head" onclick="openJob('${esc(id)}')">${cal}
       <span class="cell-main"><span class="job-title">${esc(job.client || job.topic || '（未命名）')}</span>${sub ? `<span class="cell-sub">${sub}</span>` : ''}${meta ? `<span class="job-meta">${meta}</span>` : ''}</span>${CHEV}</button>
     ${crew}
+    ${closing}
     ${job.note ? `<div class="cell note-cell">${icon('sticky-note')}<span>${esc(job.note)}</span></div>` : ''}
   </div>`;
 }
@@ -1203,6 +1226,7 @@ function renderSchedule() {
   });
   Object.entries(buckets).forEach(([g, arr]) => arr.sort((a, b) => g === 'done'
     ? C.anchorDate(b.job).localeCompare(C.anchorDate(a.job))
+    : g === 'closing' ? C.anchorDate(a.job).localeCompare(C.anchorDate(b.job)) // 待結案：放最久的排最前面
     : a.st.nextDate.localeCompare(b.st.nextDate) || (a.st.next ? a.st.next.time : '').localeCompare(b.st.next ? b.st.next.time : '')));
 
   if (!list.length) {
@@ -1240,13 +1264,30 @@ const CREW_FLAGS = {
   feeRequested: ['已標記已申請', '已取消申請標記'],
   outlineDone:  ['已標記交訪綱', '已取消交訪綱標記']
 };
+// 舊案子（沒有結案欄位）還沒做完時，一動到就開始追蹤：不然最後一份稿交出去，會直接掉進已完成，漏掉結案
+function startClosing(cur) {
+  return C.closingTracked(cur) || C.jobStatus(cur, today()).group === 'done' ? {} : { reportDone: false, invoiceSent: false };
+}
+const CLOSING_FLAGS = {
+  reportDone: ['已標記已提供結案報告', '已取消結案報告標記'],
+  invoiceSent: ['已標記已寄出提票', '已取消提票標記']
+};
+function toggleClosing(id, field, val) {
+  if (!CLOSING_FLAGS[field]) return;
+  store.update('jobs', id, cur => ({ ...cur, reportDone: !!cur.reportDone, invoiceSent: !!cur.invoiceSent, [field]: !!val, updatedAt: Date.now() }))
+    .then(r => {
+      if (r && r.committed === false) toast('這個案子已經被刪除了');
+      else toast(CLOSING_FLAGS[field][val ? 0 : 1]);
+    }).catch(failed);
+}
 function toggleCrew(id, i, field, val) {
   if (!CREW_FLAGS[field]) return;
   store.update('jobs', id, cur => {
     const crew = C.crewOf(cur);
     if (!crew[i]) return cur;
+    const start = startClosing(cur); // 要在改勾選前判斷
     crew[i] = { ...crew[i], [field]: !!val };
-    return { ...cur, crew, updatedAt: Date.now() };
+    return { ...cur, ...start, crew, updatedAt: Date.now() };
   }).then(r => {
     if (r && r.committed === false) toast('這個案子已經被刪除了');
     else toast(CREW_FLAGS[field][val ? 0 : 1]);
@@ -1356,6 +1397,9 @@ function openJob(id) {
   $('j-digital').checked = !!(j.digital || j.native); // 舊資料只有 native，原生一定是數位
   $('j-native').checked = !!j.native;
   $('j-planner').innerHTML = plannerOptions(j.planner || '');
+  $('j-report').checked = !!j.reportDone;
+  $('j-invoice').checked = !!j.invoiceSent;
+  closingTouched = false;
   $('j-delete').hidden = !id;
   applyDigitalMode();
   applyInterviewMode();
@@ -1605,6 +1649,9 @@ function saveJob() {
     interviewee: iv ? v('j-interviewee') : '', location: iv ? v('j-location') : '',
     interviewDate: C.isDate(date) ? date : '', interviewTime: C.isTime(time) ? time : '',
     note: $('j-note').value.trim(),
+    // 舊案子已完成又沒動過結案開關，維持不追蹤（欄位要整個省略，Firebase 不收 undefined）
+    ...(prev && !C.closingTracked(prev) && !closingTouched && C.jobStatus(prev, today()).group === 'done'
+      ? {} : { reportDone: $('j-report').checked, invoiceSent: $('j-invoice').checked }),
     crew,
     createdAt: (prev && prev.createdAt) || Date.now(),
     updatedAt: Date.now()
